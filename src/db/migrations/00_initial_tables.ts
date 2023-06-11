@@ -10,7 +10,7 @@ export async function up(knex): Promise<any> {
       table.text("uploader_id").notNullable();
       table.text("file").notNullable();
       table.foreign("uploader_id").references("uploaders.uploader_id");
-      table.timestamps(true, true);
+      table.timestamp("date").defaultTo(knex.fn.now());
     }),
     knex.schema.createTableIfNotExists("book_details", (table) => {
       table.increments("id").primary();

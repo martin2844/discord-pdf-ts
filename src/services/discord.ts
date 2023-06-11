@@ -3,6 +3,7 @@ const client = new Discord.Client({ intents: [1, 512] });
 
 import { BOT_TOKEN } from "@config";
 import { BookMessage } from "@/types/discord";
+import { Uploader } from "@/types/uploaders";
 
 export default async function () {
   console.log("Initializing discord client");
@@ -74,4 +75,20 @@ const fetchAllMessagesWithPdfs = async (
   );
 };
 
-export { DiscordClient, fetchAllMessagesWithPdfs };
+const fetchAvatarsForUploaders = async (uploaders: Uploader[]) => {
+  const client = await DiscordClient();
+  const promises = uploaders.map((uploader) => {
+    return client.users.fetch(uploader.uploader_id);
+  });
+  const users = await Promise.all(promises);
+  users.forEach((user: Discord.User) => {
+    //get index of matching uploader
+    const index = uploaders.findIndex(
+      (uploader) => uploader.uploader_id === user.id
+    );
+    uploaders[index].avatar = user.displayAvatarURL();
+  });
+  return uploaders;
+};
+
+export { DiscordClient, fetchAllMessagesWithPdfs, fetchAvatarsForUploaders };

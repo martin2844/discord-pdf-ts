@@ -9,6 +9,7 @@ const config = {
   useNullAsDefault: true,
   migrations: {
     directory: path.resolve(__dirname, "./migrations"),
+    loadExtensions: [".ts"],
   },
 };
 

@@ -1,8 +1,15 @@
 import { uniqBy } from "lodash";
-import db from "@db";
-import { DiscordClient, fetchAllMessagesWithPdfs } from "@services/discord";
 
-import { Book, BookDetails } from "@ctypes/books";
+import db from "@db";
+import {
+  DiscordClient,
+  fetchAllMessagesWithPdfs,
+  fetchAvatarsForUploaders,
+} from "@services/discord";
+import { getUnexistingUploaders, saveUploaders } from "@services/uploaders";
+import { getBookDetailsFromPdfUrl } from "@services/pdf";
+import { addToBooksQueue } from "@services/books_queue";
+import { Book, BookDetails, FreshBook } from "@ctypes/books";
 import { BookMessage } from "@ctypes/discord";
 
 //Read
@@ -46,11 +53,15 @@ const saveBook = async (book: Book): Promise<void> => {
   });
 };
 
-export async function saveBooks(books: Book[]) {
+const saveBooks = async (books: FreshBook[]) => {
   return db("books").insert(books);
-}
+};
 
-const mapBookMessagesToBooks = (bookMessages: BookMessage[]): Book[] => {
+const saveBookDetails = async (booksDetails: BookDetails[]): Promise<void> => {
+  return db("book_details").insert(booksDetails);
+};
+
+const mapBookMessagesToBooks = (bookMessages: BookMessage[]): FreshBook[] => {
   return bookMessages.map((bookMessage) => {
     return {
       uploader_id: bookMessage.uploader_id,
@@ -85,14 +96,31 @@ const refreshBooks = async () => {
     await getDateFromLatestBook()
   );
   await saveBooks(mapBookMessagesToBooks(booksMessages));
-  console.log("Books Refreshed");
-  console.log(mapBookMessagesToMessageAuthors(booksMessages));
+  const messageAuthors = mapBookMessagesToMessageAuthors(booksMessages);
+  const newUploaders = await getUnexistingUploaders(messageAuthors);
+  if (newUploaders.length) {
+    const uploaders = await fetchAvatarsForUploaders(newUploaders);
+    await saveUploaders(uploaders);
+  }
+  //Now we get details for freshly saved books
+  const booksWithoutDetails = await getBooksWithoutDetails();
+  //If books without details is more than 5 we should add it to books_queue and process at a later time;
+  if (booksWithoutDetails.length > 5) {
+    await addToBooksQueue(booksWithoutDetails);
+    return;
+  }
+  const bookDetailsPromises = booksWithoutDetails.map((b) =>
+    getBookDetailsFromPdfUrl(b)
+  );
+  const bookDetails = await Promise.all(bookDetailsPromises);
+  await saveBookDetails(bookDetails);
 };
 
 export {
   getAllBooks,
   getBooksWithoutDetails,
   getAllBooksAndDetails,
+  saveBook,
   getAllUploaders,
   getDateFromLatestBook,
   refreshBooks,

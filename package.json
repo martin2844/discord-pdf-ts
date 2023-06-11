@@ -7,7 +7,7 @@
     "dev": "cross-env TS_NODE=true nodemon -e ts,js --exec ts-node -r tsconfig-paths/register ./src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "dotenv -e .env -- ts-node -r tsconfig-paths/register ./node_modules/.bin/knex migrate:latest --knexfile ./src/db/knexfile.ts",
-    "rollback": "dotenv -e .env-- ts-node -r tsconfig-paths/register ./node_modules/.bin/knex migrate:rollback --knexfile ./src/db/knexfile.ts",
+    "rollback": "dotenv -e .env -- ts-node -r tsconfig-paths/register ./node_modules/.bin/knex migrate:rollback --knexfile ./src/db/knexfile.ts",
     "format": "prettier --write ."
   },
   "keywords": [],
