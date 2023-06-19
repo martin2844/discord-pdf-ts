@@ -14,4 +14,5 @@ export type BookDetails = {
   author: string;
   subject: string;
   keywords: string;
+  cover_image: string;
 };

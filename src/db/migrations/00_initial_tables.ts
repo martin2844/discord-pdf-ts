@@ -15,6 +15,7 @@ export async function up(knex): Promise<any> {
     knex.schema.createTableIfNotExists("book_details", (table) => {
       table.increments("id").primary();
       table.integer("book_id").notNullable();
+      table.text("cover_image");
       table.text("title").notNullable();
       table.text("author").notNullable();
       table.text("subject");

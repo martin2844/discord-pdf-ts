@@ -8,6 +8,7 @@ import { PORT } from "@config";
 
 const app = express();
 app.use(helmet());
+app.use(express.json());
 controllers.forEach((c) => app.use(c.path, c.handler));
 
 discord().then(() => {

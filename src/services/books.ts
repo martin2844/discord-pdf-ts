@@ -8,7 +8,7 @@ import {
 } from "@services/discord";
 import { getUnexistingUploaders, saveUploaders } from "@services/uploaders";
 import { getBookDetailsFromPdfUrl } from "@services/pdf";
-import { addToBooksQueue } from "@services/books_queue";
+import { delay } from "@utils/general";
 import { Book, BookDetails, FreshBook } from "@ctypes/books";
 import { BookMessage } from "@ctypes/discord";
 
@@ -36,13 +36,13 @@ const getAllUploaders = async () => {
   return db("uploaders").select("*");
 };
 
-const getDateFromLatestBook = async (): Promise<string | null> => {
+const getDateFromLatestBook = async (): Promise<number | null> => {
   const result = await db("books")
     .select("date")
     .orderBy("date", "desc")
     .limit(1);
 
-  return result[0]?.date || null;
+  return result[0] ? new Date(result[0].date).getTime() : null;
 };
 
 const saveBook = async (book: Book): Promise<void> => {
@@ -85,7 +85,7 @@ const mapBookMessagesToMessageAuthors = (
   );
 };
 
-const refreshBooks = async () => {
+const fetchBooks = async () => {
   console.log("Refreshing Books");
   const client = await DiscordClient();
   console.log(`Ready! Logged in as ${client.user.tag}`);
@@ -95,25 +95,67 @@ const refreshBooks = async () => {
     null,
     await getDateFromLatestBook()
   );
+  if (booksMessages.length === 0) {
+    console.log("No Messages");
+    return;
+  }
   await saveBooks(mapBookMessagesToBooks(booksMessages));
+  return booksMessages;
+};
+
+// A function for fetching uploaders
+const fetchUploaders = async (booksMessages) => {
   const messageAuthors = mapBookMessagesToMessageAuthors(booksMessages);
   const newUploaders = await getUnexistingUploaders(messageAuthors);
   if (newUploaders.length) {
     const uploaders = await fetchAvatarsForUploaders(newUploaders);
     await saveUploaders(uploaders);
   }
-  //Now we get details for freshly saved books
+};
+
+const handleMultipleBooksWithDelay = async (books) => {
+  for (const book of books) {
+    const details = await getBookDetailsFromPdfUrl(book);
+    await saveBookDetails([details]);
+    console.log("Delaying");
+    await delay(250);
+  }
+};
+
+// In memory tracking of refresh status, to prevent double hit;
+// A more advance application would use something like redis redlock
+let isRefreshing = false;
+
+// A function for handling books without details
+const handleBooksWithoutDetails = async () => {
   const booksWithoutDetails = await getBooksWithoutDetails();
-  //If books without details is more than 5 we should add it to books_queue and process at a later time;
   if (booksWithoutDetails.length > 5) {
-    await addToBooksQueue(booksWithoutDetails);
-    return;
+    handleMultipleBooksWithDelay(booksWithoutDetails).then(
+      () => (isRefreshing = false)
+    );
+    return "Refreshing books";
   }
   const bookDetailsPromises = booksWithoutDetails.map((b) =>
     getBookDetailsFromPdfUrl(b)
   );
   const bookDetails = await Promise.all(bookDetailsPromises);
   await saveBookDetails(bookDetails);
+  isRefreshing = false;
+  return "Refreshed books";
+};
+
+const refreshBooks = async () => {
+  if (isRefreshing) {
+    return "Already refreshing";
+  }
+  isRefreshing = true;
+  const booksMessages = await fetchBooks();
+  if (booksMessages) {
+    await fetchUploaders(booksMessages);
+    return await handleBooksWithoutDetails();
+  }
+  isRefreshing = false;
+  return "Books up to date";
 };
 
 export {
@@ -124,4 +166,5 @@ export {
   getAllUploaders,
   getDateFromLatestBook,
   refreshBooks,
+  isRefreshing,
 };

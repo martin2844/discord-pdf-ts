@@ -28,25 +28,23 @@ const fetchAllMessagesWithPdfs = async (
     channel = (await client.channels.fetch(channel)) as Discord.TextChannel;
   }
   const options = { limit: 100, before: lastId };
-  if (lastTimestamp) {
-    lastTimestamp = 0;
-  }
 
   const messages = await channel.messages.fetch(options);
   if (messages.size === 0) {
     return messagesWithPdfs;
   }
 
-  let olderMessageFound = false;
+  // Reverse the messages array to process them from newest to oldest
+  const sortedMessages = [...messages.values()].sort(
+    (a, b) => b.createdTimestamp - a.createdTimestamp
+  );
 
-  messages.forEach((msg) => {
-    // If the message is older or the same as the latest in the database, stop fetching
-    if (msg.createdTimestamp <= lastTimestamp) {
-      olderMessageFound = true;
-      return;
+  for (const msg of sortedMessages) {
+    // If the message is older or the same as the latest in the database, stop processing
+    if (lastTimestamp !== null && msg.createdTimestamp <= lastTimestamp) {
+      return messagesWithPdfs;
     }
 
-    //   console.log(`Message from ${msg.author.tag}: ${msg.content}`);
     if (msg.attachments.size > 0) {
       msg.attachments.forEach((attachment) => {
         if (attachment.name.endsWith(".pdf")) {
@@ -57,16 +55,13 @@ const fetchAllMessagesWithPdfs = async (
             author_id: msg.author.id,
             author_tag: msg.author.tag,
           });
-          // getAndSaveAvatar(client, msg.author.id, msg.author.tag); // You'll need to update this
           console.log("Message with Pdf Found: " + msg.author.tag);
         }
       });
     }
-    if (olderMessageFound) {
-      return messagesWithPdfs;
-    }
-    lastId = messages.last().id;
-  });
+    lastId = msg.id;
+  }
+
   return await fetchAllMessagesWithPdfs(
     channel,
     lastId,
