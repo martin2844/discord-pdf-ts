@@ -16,6 +16,7 @@ const uploadToImgur = async (image64) => {
       return "";
     }
     const response = await client.upload({ image: image64, type: "base64" });
+    if(response.status !== 200) throw new Error("Failed to upload to Imgur");
     return response.data.link;
   } catch (error) {
     logger.error("@@@ Error Uploading to Imgur: ");
