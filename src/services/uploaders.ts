@@ -18,8 +18,15 @@ const getUnexistingUploaders = async (uploaders: Uploader[]) => {
   });
 };
 
+const checkIfUploaderExists = async (uploader_id: string) => {
+  const existingUploader = await db("uploaders")
+    .where("uploader_id", uploader_id)
+    .select("uploader_id");
+  return !!existingUploader.length;
+};
+
 const saveUploaders = async (uploaders: Uploader[]) => {
   return db("uploaders").insert(uploaders);
 };
 
-export { getUnexistingUploaders, saveUploaders };
+export { getUnexistingUploaders, saveUploaders, checkIfUploaderExists };

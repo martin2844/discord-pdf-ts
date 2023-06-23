@@ -6,11 +6,16 @@ import {
   fetchAllMessagesWithPdfs,
   fetchAvatarsForUploaders,
 } from "@services/discord";
-import { getUnexistingUploaders, saveUploaders } from "@services/uploaders";
+import {
+  checkIfUploaderExists,
+  getUnexistingUploaders,
+  saveUploaders,
+} from "@services/uploaders";
 import { getBookDetailsFromPdfUrl } from "@services/pdf";
 import { delay } from "@utils/general";
 import { Book, BookDetails, FreshBook } from "@ctypes/books";
 import { BookMessage } from "@ctypes/discord";
+import { getDetailsFromUser } from "./github";
 
 //Read
 const getAllBooks = (): Promise<Book[]> => {
@@ -85,6 +90,21 @@ const mapBookMessagesToMessageAuthors = (
   );
 };
 
+const pruneBooks = async (books: FreshBook[]) => {
+  //Check if books exist in DB by searching for file, if they do, remove them from the array
+  const existingBooks = await db("books")
+    .whereIn(
+      "file",
+      books.map((book) => book.file)
+    )
+    .select("file");
+  return books.filter((book) => {
+    return !existingBooks.find(
+      (existingBook) => existingBook.file === book.file
+    );
+  });
+};
+
 const fetchBooks = async () => {
   console.log("Refreshing Books");
   const client = await DiscordClient();
@@ -99,14 +119,28 @@ const fetchBooks = async () => {
     console.log("No Messages");
     return;
   }
-  await saveBooks(mapBookMessagesToBooks(booksMessages));
+  const books = await pruneBooks(mapBookMessagesToBooks(booksMessages));
+  if (books) {
+    await saveBooks(books);
+  }
   return booksMessages;
 };
 
-// A function for fetching uploaders
+const addSingleBookFromMessage = async (bookMessage: BookMessage) => {
+  //1. check if uploader exists
+  await fetchUploaders([bookMessage]);
+  //2. save book
+  await saveBooks(await pruneBooks(mapBookMessagesToBooks([bookMessage])));
+  //4. fetch book details
+  return handleBooksWithoutDetails();
+};
+
+// A function for fetching Discord uploaders
 const fetchUploaders = async (booksMessages) => {
   const messageAuthors = mapBookMessagesToMessageAuthors(booksMessages);
-  const newUploaders = await getUnexistingUploaders(messageAuthors);
+  const newUploaders = await getUnexistingUploaders(
+    messageAuthors.map((m) => ({ ...m, source: "discord" }))
+  );
   if (newUploaders.length) {
     const uploaders = await fetchAvatarsForUploaders(newUploaders);
     await saveUploaders(uploaders);
@@ -158,6 +192,21 @@ const refreshBooks = async () => {
   return "Books up to date";
 };
 
+const addBooksFromGH = async (books: FreshBook[], repoUser: string) => {
+  //1. Check if uploader exists
+  const userExists = await checkIfUploaderExists(repoUser);
+  //2. If not, create uploader
+  if (!userExists) {
+    //First get Github Details
+    const details = await getDetailsFromUser(repoUser);
+    await saveUploaders([details]);
+  }
+  //3. Save Books
+  await saveBooks(books);
+  //4. Save Book Details
+  return handleBooksWithoutDetails();
+};
+
 export {
   getAllBooks,
   getBooksWithoutDetails,
@@ -167,4 +216,6 @@ export {
   getDateFromLatestBook,
   refreshBooks,
   isRefreshing,
+  addBooksFromGH,
+  addSingleBookFromMessage,
 };

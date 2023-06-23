@@ -6,6 +6,12 @@ const client = new ImgurClient({ clientId: IMGUR_CLIENT_ID }); // Set your imgur
 
 const uploadToImgur = async (image64) => {
   try {
+    if (!image64) {
+      console.log(
+        "Failed to get an image to upload, check libs necessary for PDF2PIC"
+      );
+      return "";
+    }
     const response = await client.upload({ image: image64, type: "base64" });
     return response.data.link;
   } catch (error) {

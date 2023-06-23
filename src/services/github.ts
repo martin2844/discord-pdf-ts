@@ -2,12 +2,13 @@ import { Octokit } from "octokit";
 import url from "url";
 
 import { GITHUB_PAT } from "@config";
+import { GithubUserName, Uploader } from "@ctypes/uploaders";
 
 const octokit = new Octokit({
   auth: GITHUB_PAT,
 });
 
-function getUserAndRepoFromUrl(githubUrl) {
+function getUserAndRepoFromUrl(githubUrl: string) {
   const parsedUrl = url.parse(githubUrl);
   if (parsedUrl.host !== "github.com") {
     throw new Error("The URL is not a GitHub URL");
@@ -26,7 +27,7 @@ function getUserAndRepoFromUrl(githubUrl) {
   };
 }
 
-async function getAllPdfs(owner, repo) {
+async function getAllPdfs(owner: GithubUserName, repo: string) {
   const {
     data: { default_branch },
   } = await octokit.rest.repos.get({ owner, repo });
@@ -55,16 +56,31 @@ async function getAllPdfs(owner, repo) {
   const pdfFiles = tree.filter((file) => file.path.endsWith(".pdf"));
 
   return pdfFiles.map((file) => ({
-    name: file.path,
-    url: encodeURI(
+    date: new Date().toISOString(),
+    file: encodeURI(
       `https://raw.githubusercontent.com/${owner}/${repo}/${default_branch}/${file.path}`
     ),
   }));
 }
 
-const getPdfsFromRepo = async (githubUrl) => {
+const getPdfsFromRepo = async (githubUrl: string) => {
   const { user, repo } = getUserAndRepoFromUrl(githubUrl);
   return getAllPdfs(user, repo);
 };
 
-export { getPdfsFromRepo };
+async function getDetailsFromUser(user: GithubUserName): Promise<Uploader> {
+  const {
+    data: { name, avatar_url },
+  } = await octokit.rest.users.getByUsername({
+    username: user,
+  });
+
+  return {
+    name,
+    avatar: avatar_url,
+    uploader_id: user,
+    source: "github",
+  };
+}
+
+export { getPdfsFromRepo, getUserAndRepoFromUrl, getDetailsFromUser };

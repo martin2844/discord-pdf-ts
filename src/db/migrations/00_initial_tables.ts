@@ -4,11 +4,12 @@ export async function up(knex): Promise<any> {
       table.text("name").primary();
       table.text("uploader_id").notNullable();
       table.text("avatar").notNullable();
+      table.text("source").notNullable();
     }),
     knex.schema.createTableIfNotExists("books", (table) => {
       table.increments("id").primary();
       table.text("uploader_id").notNullable();
-      table.text("file").notNullable();
+      table.text("file").notNullable().unique();
       table.foreign("uploader_id").references("uploaders.uploader_id");
       table.timestamp("date").defaultTo(knex.fn.now());
     }),
