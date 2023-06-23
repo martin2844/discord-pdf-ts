@@ -1,10 +1,13 @@
 import axios from "axios";
 import { fromBuffer } from "pdf2pic";
+import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
 import PDFParser from "pdf-parse";
 
 import { uploadToImgur } from "@services/imgur";
+import Logger from "@utils/logger";
 import { Book } from "@ctypes/books";
-import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
+
+const logger = Logger(module);
 
 /* Converting PDF to image with this lib requires two libraries:
 ghostscript and graphicsmagick
@@ -40,7 +43,7 @@ const storeAsImageAndGetCoverUrl = async (pdfBuffer: Buffer) => {
 
 const getBookDetailsFromPdfUrl = async (book: Book) => {
   // Download the PDF file from the URL
-  console.log("downloading pdf for book", book.id);
+  logger.info("downloading pdf for book " + book.id);
   const response = await axios.get(book.file, {
     responseType: "arraybuffer",
   });

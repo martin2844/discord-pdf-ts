@@ -12,10 +12,14 @@ import {
   saveUploaders,
 } from "@services/uploaders";
 import { getBookDetailsFromPdfUrl } from "@services/pdf";
+import { getDetailsFromUser } from "@services/github";
 import { delay } from "@utils/general";
+import Logger from "@utils/logger";
 import { Book, BookDetails, FreshBook } from "@ctypes/books";
 import { BookMessage } from "@ctypes/discord";
-import { getDetailsFromUser } from "./github";
+import { BOOK_CHANNEL_ID } from "@config";
+
+const logger = Logger(module);
 
 //Read
 const getAllBooks = (): Promise<Book[]> => {
@@ -106,17 +110,17 @@ const pruneBooks = async (books: FreshBook[]) => {
 };
 
 const fetchBooks = async () => {
-  console.log("Refreshing Books");
   const client = await DiscordClient();
-  console.log(`Ready! Logged in as ${client.user.tag}`);
-  const channelId = "805973548924403722";
+  logger.info(
+    `Ready! Logged in as ${client.user.tag} at ${BOOK_CHANNEL_ID} and about to FETCH fresh books`
+  );
   const booksMessages = await fetchAllMessagesWithPdfs(
-    channelId,
+    BOOK_CHANNEL_ID,
     null,
     await getDateFromLatestBook()
   );
   if (booksMessages.length === 0) {
-    console.log("No Messages");
+    logger.info("No Messages");
     return;
   }
   const books = await pruneBooks(mapBookMessagesToBooks(booksMessages));
@@ -151,7 +155,7 @@ const handleMultipleBooksWithDelay = async (books) => {
   for (const book of books) {
     const details = await getBookDetailsFromPdfUrl(book);
     await saveBookDetails([details]);
-    console.log("Delaying");
+    logger.info("Delaying Download of next book");
     await delay(250);
   }
 };

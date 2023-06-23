@@ -1,14 +1,17 @@
 import * as Discord from "discord.js";
 const client = new Discord.Client({ intents: [1, 512, 32768] });
 
-import { BOT_TOKEN } from "@config";
-import { BookMessage } from "@/types/discord";
-import { Uploader } from "@/types/uploaders";
-import { addSingleBookFromMessage } from "./books";
+import { BOT_TOKEN, BOOK_CHANNEL_ID } from "@config";
+import { addSingleBookFromMessage } from "@services/books";
+import Logger from "@utils/logger";
+import { BookMessage } from "@ctypes/discord";
+import { Uploader } from "@ctypes/uploaders";
+
+const logger = Logger(module);
 
 export default async function () {
-  console.log("Initializing discord client");
-  await client.login(BOT_TOKEN); // Replace with your bot token
+  logger.info("Initializing discord client");
+  await client.login(BOT_TOKEN);
 }
 
 const DiscordClient = async (): Promise<Discord.Client> => {
@@ -56,7 +59,7 @@ const fetchAllMessagesWithPdfs = async (
             author_id: msg.author.id,
             author_tag: msg.author.tag,
           });
-          console.log("Message with Pdf Found: " + msg.author.tag);
+          logger.info("Message with Pdf Found: " + msg.author.tag);
         }
       });
     }
@@ -121,21 +124,21 @@ DiscordClient().then((c) =>
     // Ignore messages that are not from the specified TextChannel (DMs, VoiceChannels, etc.)
     if (
       !(message.channel instanceof Discord.TextChannel) ||
-      message.channel.id !== "805973548924403722"
+      message.channel.id !== BOOK_CHANNEL_ID
     )
       return;
     if (message.content.toLowerCase() === "/health") {
       await message.reply("I'm alive!");
     }
 
-    // You can also add more conditions, for example ignoring messages that don't have attachments
+    //Ignore messages without attachment
     if (message.attachments.size === 0) return;
 
     message.attachments.forEach((attachment) => {
       if (attachment.name.endsWith(".pdf")) {
         // You found a PDF, do something with it!
-        console.log(
-          `Found a PDF in a message from ${message.author.tag}: ${attachment.url}`
+        logger.info(
+          `WS: Found a PDF in a message from ${message.author.tag}: ${attachment.url}`
         );
         fetchPdfFromSingleMessage(message).then((book) => {
           if (book) {

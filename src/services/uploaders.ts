@@ -1,5 +1,8 @@
 import db from "@db";
+import Logger from "@utils/logger";
 import { Uploader } from "@ctypes/uploaders";
+
+const logger = Logger(module);
 
 const getUnexistingUploaders = async (uploaders: Uploader[]) => {
   const existingUploaders = await db("uploaders")
@@ -8,7 +11,7 @@ const getUnexistingUploaders = async (uploaders: Uploader[]) => {
       uploaders.map((uploader) => uploader.uploader_id)
     )
     .select("uploader_id");
-  console.log("existingUploaders", existingUploaders);
+  logger.info("Amount of existingUploaders" + existingUploaders.length);
   // Return only the uploaders that don't exist in the database
   return uploaders.filter((uploader) => {
     return !existingUploaders.find(
