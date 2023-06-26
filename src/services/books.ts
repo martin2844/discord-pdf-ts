@@ -43,8 +43,6 @@ const getAllBooksAndDetails = (
 
   // Safe list of filters.
   const validFilters = [
-    "id",
-    "uploader_id",
     "file",
     "date",
     "name",
@@ -63,6 +61,15 @@ const getAllBooksAndDetails = (
       query = query.where(filter, filters[filter]);
     }
   });
+
+  // Handle 'id' and 'uploader_id' filter separately because they exist in more than one table.
+  if (filters.id) {
+    query = query.where("books.id", filters.id);
+  }
+
+  if (filters.uploader_id) {
+    query = query.where("books.uploader_id", filters.uploader_id);
+  }
 
   return query.select("*");
 };
