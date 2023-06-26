@@ -225,6 +225,15 @@ const refreshBooks = async () => {
     await fetchUploaders(booksMessages);
     return await handleBooksWithoutDetails();
   }
+  if (!booksMessages) {
+    //If no books message, check if there are any books without cover
+    const booksWithoutCover = await booksWithoutCoverImages();
+    if (booksWithoutCover.length) {
+      //If there are books without cover, update them
+      updateCoverImages(booksWithoutCover).then(() => (isRefreshing = false));
+      return "Refreshing Cover images";
+    }
+  }
   isRefreshing = false;
   return "Books up to date";
 };
@@ -242,6 +251,46 @@ const addBooksFromGH = async (books: FreshBook[], repoUser: string) => {
   await saveBooks(books);
   //4. Save Book Details
   return handleBooksWithoutDetails();
+};
+
+const booksWithoutCoverImages = async () => {
+  // Get book details without cover images (limit to 5)
+  const booksToUpdate = await db("book_details")
+    .where("cover_image", "")
+    .limit(5)
+    .select("*");
+  return booksToUpdate;
+};
+
+const updateCoverImages = async (booksToUpdate) => {
+  // For each book
+  for (const book of booksToUpdate) {
+    // Get book object to use for getBookDetailsFromPdfUrl function
+    const bookObject = await db("books").where("id", book.book_id).first();
+    // Fetch book details
+    const newBookDetails = await getBookDetailsFromPdfUrl(bookObject);
+    // Update book details in the database
+    await db("book_details").where("book_id", book.book_id).update({
+      cover_image: newBookDetails.cover_image,
+    });
+    logger.info(`Updated cover image for book ${book.book_id}`);
+    await delay(250);
+  }
+
+  // If there are still books to update, function can be run again
+  const remainingBooksCount = await db("book_details")
+    .whereNull("cover_image")
+    .count("book_id as count");
+
+  const remainingBooksCountNumber = Number(remainingBooksCount[0].count);
+
+  if (remainingBooksCountNumber > 0) {
+    logger.info(
+      `${remainingBooksCount[0].count} books remaining to update. Run the function again.`
+    );
+  } else {
+    logger.info(`All books are updated.`);
+  }
 };
 
 export {
