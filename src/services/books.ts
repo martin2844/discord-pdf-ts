@@ -33,12 +33,38 @@ const getBooksWithoutDetails = (): Promise<Book[]> => {
     .select("books.id", "books.file");
 };
 
-const getAllBooksAndDetails = (): Promise<(Book & BookDetails)[]> => {
-  return db("books")
+const getAllBooksAndDetails = (
+  filters: any = {}
+): Promise<(Book & BookDetails)[]> => {
+  let query = db("books")
     .innerJoin("uploaders", "books.uploader_id", "uploaders.uploader_id")
     .innerJoin("book_details", "books.id", "book_details.book_id")
-    .orderBy("date", "desc")
-    .select("*");
+    .orderBy("date", "desc");
+
+  // Safe list of filters.
+  const validFilters = [
+    "id",
+    "uploader_id",
+    "file",
+    "date",
+    "name",
+    "avatar",
+    "source",
+    "book_id",
+    "cover_image",
+    "title",
+    "author",
+    "subject",
+    "keywords",
+  ];
+
+  validFilters.forEach((filter) => {
+    if (filters[filter]) {
+      query = query.where(filter, filters[filter]);
+    }
+  });
+
+  return query.select("*");
 };
 
 const getAllUploaders = async () => {
