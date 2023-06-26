@@ -1,5 +1,3 @@
-import { uniqBy } from "lodash";
-
 import db from "@db";
 import {
   DiscordClient,
@@ -18,6 +16,8 @@ import Logger from "@utils/logger";
 import { Book, BookDetails, FreshBook } from "@ctypes/books";
 import { BookMessage } from "@ctypes/discord";
 import { BOOK_CHANNEL_ID } from "@config";
+
+import { uniqBy } from "lodash";
 
 const logger = Logger(module);
 
