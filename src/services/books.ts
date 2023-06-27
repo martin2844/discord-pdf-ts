@@ -10,6 +10,11 @@ import {
   saveUploaders,
 } from "@services/uploaders";
 import { getBookDetailsFromPdfUrl } from "@services/pdf";
+import {
+  getAIbookDescription,
+  getAIKeywords,
+  getAiSubject,
+} from "@services/openai";
 import { getDetailsFromUser } from "@services/github";
 import { delay } from "@utils/general";
 import Logger from "@utils/logger";
@@ -293,6 +298,115 @@ const updateCoverImages = async (booksToUpdate) => {
   }
 };
 
+const updateBookDescription = async (bookId: number) => {
+  // Fetch book with specific conditions
+  const book = await db("book_details")
+    .where({
+      book_id: bookId,
+      description: "", // Empty description
+    })
+    .whereNotNull("author") // Non-null author
+    .andWhere("author", "<>", "") // Non-empty author
+    .whereNotNull("title") // Non-null title
+    .andWhere("title", "<>", "") // Non-empty title
+    .first()
+    .select("*");
+
+  if (!book) {
+    return "Book not found or conditions not met for updating book description.";
+  }
+
+  // Get AI-generated book description
+  const description = await getAIbookDescription(book);
+  const cleanDesc = description.replace(/(\r\n|\n|\r)/gm, " ").trim();
+
+  // Update book description in the database
+  await db("book_details")
+    .where("book_id", bookId)
+    .update({ description: cleanDesc });
+
+  return "Book description updated.";
+};
+
+const updateKeywords = async (bookId: number) => {
+  // Step 1: Search for the book in the DB
+  const book = await db("book_details")
+    .where("book_id", bookId)
+    .first()
+    .select("*");
+  if (!book) {
+    return "Book not found";
+  }
+  if (!book.title || !book.author) {
+    logger.error("Souldnt fetch keywords for book without title or author");
+    return "Book Missing Title or Author";
+  }
+  // Step 2: Check if the book has associated keywords with it
+  const existingKeywords = await db("book_keywords")
+    .where("book_id", bookId)
+    .select("keyword_id");
+  // Step 3: If not, get keywords from the function getAIKeywords
+  if (existingKeywords.length === 0) {
+    const keywords = await getAIKeywords(book);
+    console.log("AI Keywords", keywords);
+    // Step 4: getAIKeywords returns an array of keywords for that book, it should check the DB and see if those keywords exist
+    // If they don't, it should add them.
+    const existingKeywordObjects = await db("keywords")
+      .whereIn("keyword", keywords)
+      .select("*");
+    const existingKeywordNames = existingKeywordObjects.map((k) => k.keyword);
+    const newKeywords = keywords.filter(
+      (k) => !existingKeywordNames.includes(k)
+    );
+    // Insert new keywords
+    const insertedKeywordObjects = await db("keywords").insert(
+      newKeywords.map((k) => ({ keyword: k })),
+      ["id", "keyword"]
+    );
+    // Combine existing and newly inserted keywords
+    const allKeywordObjects = [
+      ...existingKeywordObjects,
+      ...insertedKeywordObjects,
+    ];
+    // Step 5: Finally, add all of the applicable keywords for that book to the book_keywords table.
+    const keywordAssociations = allKeywordObjects.map((k) => ({
+      book_id: bookId,
+      keyword_id: k.id,
+    }));
+    await db("book_keywords").insert(keywordAssociations);
+  }
+  return "Keywords updated for the book.";
+};
+
+const updateBookSubject = async (bookId: number) => {
+  // Step 1: Search for the book in the DB
+  const book = await db("book_details")
+    .where({
+      book_id: bookId,
+      subject: "",
+    })
+    .whereNotNull("author") // Non-null author
+    .andWhere("author", "<>", "") // Non-empty author
+    .whereNotNull("title") // Non-null title
+    .andWhere("title", "<>", "") // Non-empty title
+    .first()
+    .select("*");
+
+  if (!book) {
+    return "Book not found or conditions not met for updating book subject.";
+  }
+
+  // Get AI-generated book subject
+  const subject = await getAiSubject(book);
+
+  // Update book subject in the database
+  await db("book_details")
+    .where("book_id", bookId)
+    .update({ subject: subject.trim() });
+
+  return "Book subject updated.";
+};
+
 export {
   getAllBooks,
   getBooksWithoutDetails,
@@ -304,4 +418,7 @@ export {
   isRefreshing,
   addBooksFromGH,
   addSingleBookFromMessage,
+  updateBookDescription,
+  updateKeywords,
+  updateBookSubject,
 };

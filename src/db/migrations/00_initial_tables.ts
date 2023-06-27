@@ -20,14 +20,27 @@ export async function up(knex): Promise<any> {
       table.text("title").notNullable();
       table.text("author").notNullable();
       table.text("subject");
-      table.text("keywords");
+      table.text("description");
       table.foreign("book_id").references("books.id");
+    }),
+    knex.schema.createTableIfNotExists("keywords", (table) => {
+      table.increments("id").primary();
+      table.text("keyword").notNullable().unique();
+    }),
+    knex.schema.createTableIfNotExists("book_keywords", (table) => {
+      table.integer("book_id").notNullable();
+      table.integer("keyword_id").notNullable();
+      table.primary(["book_id", "keyword_id"]);
+      table.foreign("book_id").references("books.id");
+      table.foreign("keyword_id").references("keywords.id");
     }),
   ]);
 }
 
 export async function down(knex): Promise<any> {
   return Promise.all([
+    knex.schema.dropTableIfExists("book_keywords"),
+    knex.schema.dropTableIfExists("keywords"),
     knex.schema.dropTableIfExists("book_details"),
     knex.schema.dropTableIfExists("books"),
     knex.schema.dropTableIfExists("uploaders"),

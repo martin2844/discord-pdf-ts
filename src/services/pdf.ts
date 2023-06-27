@@ -5,7 +5,7 @@ import PDFParser from "pdf-parse";
 
 import { uploadToImgur } from "@services/imgur";
 import Logger from "@utils/logger";
-import { Book } from "@ctypes/books";
+import { Book, BookDetails } from "@ctypes/books";
 
 const logger = Logger(module);
 
@@ -41,7 +41,7 @@ const storeAsImageAndGetCoverUrl = async (pdfBuffer: Buffer) => {
   return coverUrl;
 };
 
-const getBookDetailsFromPdfUrl = async (book: Book) => {
+const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
   // Download the PDF file from the URL
   logger.info("downloading pdf for book " + book.id);
   const response = await axios.get(book.file, {
@@ -58,7 +58,7 @@ const getBookDetailsFromPdfUrl = async (book: Book) => {
     author: info?.Author || "",
     title: info?.Title || "",
     subject: "",
-    keywords: "",
+    description: "",
     cover_image: coverUrl || "",
   };
 };

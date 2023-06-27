@@ -13,6 +13,8 @@ export type BookDetails = {
   title: string;
   author: string;
   subject: string;
-  keywords: string;
+  description: string;
   cover_image: string;
 };
+
+export type BookWithDetail = Book & BookDetails;
