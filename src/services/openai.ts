@@ -25,7 +25,7 @@ const getAIbookDescription = async (book: BookDetails) => {
 const getAIKeywords = async (book: BookDetails) => {
   const aiResponse = await openai.createCompletion({
     model: "text-davinci-003",
-    prompt: `Give me 10 keywords about the book ${book.title} by ${book.author}, keywords examples are 'java', 'php', 'machine-learning', 'ai', 'architecture', 'competitive-programming', 'web-dev' reply in a javascript array format like this ['keyword1', 'keyword2', 'keyword3']`,
+    prompt: `Give me 5 keywords about the book ${book.title} by ${book.author}, keywords examples are 'java', 'php', 'machine-learning', 'ai', 'architecture', 'competitive programming', 'web dev', keywords should be of a general nature, dont give me very niche results, reply in a javascript array format like this ['keyword1', 'keyword2', 'keyword3']`,
     temperature: 1,
     max_tokens: 256,
     top_p: 1,

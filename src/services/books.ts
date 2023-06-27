@@ -348,7 +348,6 @@ const updateKeywords = async (bookId: number) => {
   // Step 3: If not, get keywords from the function getAIKeywords
   if (existingKeywords.length === 0) {
     const keywords = await getAIKeywords(book);
-    console.log("AI Keywords", keywords);
     // Step 4: getAIKeywords returns an array of keywords for that book, it should check the DB and see if those keywords exist
     // If they don't, it should add them.
     const existingKeywordObjects = await db("keywords")
@@ -407,14 +406,47 @@ const updateBookSubject = async (bookId: number) => {
   return "Book subject updated.";
 };
 
+const getBooksWithNoSubjectNorDescription = async (): Promise<number[]> => {
+  const bookIds = await db("book_details")
+    .where((builder) => {
+      builder
+        .whereNull("subject")
+        .orWhere("subject", "")
+        .whereNull("description")
+        .orWhere("description", "");
+    })
+    .whereNotNull("author")
+    .andWhere("author", "<>", "")
+    .whereNotNull("title")
+    .andWhere("title", "<>", "")
+    .pluck("book_id");
+  return bookIds;
+};
+
+const getBooksWithoutKeywords = async (): Promise<number[]> => {
+  const bookIds = await db("book_details")
+    .leftJoin("book_keywords", "book_details.book_id", "book_keywords.book_id")
+    .whereNull("book_keywords.keyword_id")
+    .whereNotNull("book_details.author")
+    .andWhere("book_details.author", "<>", "")
+    .whereNotNull("book_details.title")
+    .andWhere("book_details.title", "<>", "")
+    .groupBy("book_details.book_id")
+    .pluck("book_details.book_id");
+  return bookIds;
+};
+
 export {
   getAllBooks,
   getBooksWithoutDetails,
   getAllBooksAndDetails,
+  getBooksWithNoSubjectNorDescription,
+  getBooksWithoutKeywords,
   saveBook,
   getAllUploaders,
   getDateFromLatestBook,
   refreshBooks,
+  handleBooksWithoutDetails,
   isRefreshing,
   addBooksFromGH,
   addSingleBookFromMessage,

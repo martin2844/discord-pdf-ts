@@ -11,4 +11,6 @@ export const {
   CLOUDINARY_SECRET,
   CLOUDINARY_NAME,
   OPENAI_KEY,
+  API_PASSWORD,
+  JWT_SECRET,
 } = process.env;

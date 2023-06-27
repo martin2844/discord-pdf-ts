@@ -1,11 +1,8 @@
-// const booksController = require('./books');
-// const viewsController = require('./views');
-// const dbController = require('./db');
-
 import booksController from "./books";
 import repoController from "./repo";
 import statusController from "./status";
 import updateController from "./update";
+import authController from "./auth";
 // import dbController from '@controllers/db';
 
 const apiPaths = [
@@ -24,6 +21,10 @@ const apiPaths = [
   {
     path: "/update",
     handler: updateController,
+  },
+  {
+    path: "/auth",
+    handler: authController,
   },
 ].map((c) => ({ ...c, path: `/api${c.path}` }));
 
