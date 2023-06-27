@@ -9,25 +9,27 @@ const logger = Logger(module);
 const client = new ImgurClient({ clientId: IMGUR_CLIENT_ID }); // Set your imgur client id here
 
 const uploadToImgur = async (image64) => {
-  // try {
-  //   if (!image64) {
-  //     logger.warn(
-  //       "Failed to get an image to upload, check libs necessary for PDF2PIC"
-  //     );
-  //     return "";
-  //   }
-  //   const response = await client.upload({ image: image64, type: "base64" });
-  //   if(response.status !== 200) {
-  // console.log(response)
-  // logger.error("@@@ Error Uploading to Imgur: " + response.status);
-  return cloudinaryUpload(image64);
-  // }
-  // return response.data.link;
-  // } catch (error) {
-  //   logger.error("@@@ Error Uploading to Imgur: ");
-  //   logger.error(JSON.stringify(error));
-  //   return "";
-  // }
+  try {
+    if (!image64) {
+      logger.warn(
+        "Failed to get an image to upload, check libs necessary for PDF2PIC"
+      );
+      return "";
+    }
+    //First try IMGUR
+    const response = await client.upload({ image: image64, type: "base64" });
+    //IF no IMGUR Available, try cloudinary
+    if (response.status !== 200) {
+      console.log(response);
+      logger.error("@@@ Error Uploading to Imgur: " + response.status);
+      return await cloudinaryUpload(image64);
+    }
+    return response.data.link;
+  } catch (error) {
+    logger.error("@@@ Error Uploading to Imgur: ");
+    logger.error(JSON.stringify(error));
+    return "";
+  }
 };
 
 export { uploadToImgur };
