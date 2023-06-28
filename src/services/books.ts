@@ -41,20 +41,22 @@ const getBooksWithoutDetails = (): Promise<Book[]> => {
 const getAllBooksAndDetails = (
   filters: any = {}
 ): Promise<(Book & BookDetails)[]> => {
+  let subquery = db
+    .select(
+      db.raw("bk.book_id as book_id, GROUP_CONCAT(k.keyword) as keywords")
+    )
+    .from("book_keywords as bk")
+    .innerJoin("keywords as k", "bk.keyword_id", "k.id")
+    .groupBy("bk.book_id")
+    .as("keywords_subquery");
+
   let query = db("books as b")
     .innerJoin("uploaders as u", "b.uploader_id", "u.uploader_id")
     .innerJoin("book_details as bd", "b.id", "bd.book_id")
     .leftJoin(
-      db
-        .select(
-          db.raw("bk.book_id as book_id, GROUP_CONCAT(k.keyword) as keywords")
-        )
-        .from("book_keywords as bk")
-        .innerJoin("keywords as k", "bk.keyword_id", "k.id")
-        .groupBy("bk.book_id")
-        .as("keywords_subquery"),
+      db.select("*").from(subquery).as("keywords_subquery2"),
       "b.id",
-      "keywords_subquery.book_id"
+      "keywords_subquery2.book_id"
     )
     .orderBy("date", "desc")
     .select(
@@ -71,7 +73,7 @@ const getAllBooksAndDetails = (
       "bd.author",
       "bd.subject",
       "bd.description",
-      "keywords_subquery.keywords"
+      "keywords_subquery2.keywords"
     );
 
   // Safe list of filters.
@@ -86,7 +88,6 @@ const getAllBooksAndDetails = (
     "title",
     "author",
     "subject",
-    "keywords",
   ];
 
   validFilters.forEach((filter) => {
@@ -97,14 +98,21 @@ const getAllBooksAndDetails = (
 
   // Handle 'id' and 'uploader_id' filter separately because they exist in more than one table.
   if (filters.id) {
-    query = query.where("books.id", filters.id);
+    query = query.where("b.id", filters.id);
   }
 
   if (filters.uploader_id) {
-    query = query.where("books.uploader_id", filters.uploader_id);
+    query = query.where("b.uploader_id", filters.uploader_id);
   }
 
-  return query.select("*");
+  // Filter by keyword
+  if (filters.keywords) {
+    query = query.whereRaw(`keywords_subquery2.keywords LIKE ?`, [
+      `%${filters.keywords}%`,
+    ]);
+  }
+
+  return query;
 };
 
 const getAllUploaders = async () => {
