@@ -41,10 +41,38 @@ const getBooksWithoutDetails = (): Promise<Book[]> => {
 const getAllBooksAndDetails = (
   filters: any = {}
 ): Promise<(Book & BookDetails)[]> => {
-  let query = db("books")
-    .innerJoin("uploaders", "books.uploader_id", "uploaders.uploader_id")
-    .innerJoin("book_details", "books.id", "book_details.book_id")
-    .orderBy("date", "desc");
+  let query = db("books as b")
+    .innerJoin("uploaders as u", "b.uploader_id", "u.uploader_id")
+    .innerJoin("book_details as bd", "b.id", "bd.book_id")
+    .leftJoin(
+      db
+        .select(
+          db.raw("bk.book_id as book_id, GROUP_CONCAT(k.keyword) as keywords")
+        )
+        .from("book_keywords as bk")
+        .innerJoin("keywords as k", "bk.keyword_id", "k.id")
+        .groupBy("bk.book_id")
+        .as("keywords_subquery"),
+      "b.id",
+      "keywords_subquery.book_id"
+    )
+    .orderBy("date", "desc")
+    .select(
+      "b.id as book_id",
+      "bd.id as book_details_id",
+      "b.uploader_id",
+      "b.file",
+      "b.date",
+      "u.name",
+      "u.avatar",
+      "u.source",
+      "bd.cover_image",
+      "bd.title",
+      "bd.author",
+      "bd.subject",
+      "bd.description",
+      "keywords_subquery.keywords"
+    );
 
   // Safe list of filters.
   const validFilters = [
