@@ -4,6 +4,7 @@ import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
 import PDFParser from "pdf-parse";
 
 import { uploadToImgur } from "@services/imgur";
+import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails } from "@ctypes/books";
 
@@ -41,6 +42,19 @@ const storeAsImageAndGetCoverUrl = async (pdfBuffer: Buffer) => {
   return coverUrl;
 };
 
+//This dynamic import manneuver is to avoid mjs/ts errors
+let fileTypeFromBuffer: any;
+const checkMimeType = async (pdfBuffer: Buffer, bookId: number) => {
+  if (!fileTypeFromBuffer) {
+    const fileTypeModule = await import("file-type");
+    fileTypeFromBuffer = fileTypeModule.fileTypeFromBuffer;
+  }
+  const fileType = await fileTypeFromBuffer(pdfBuffer);
+  if (!fileType || fileType.mime !== "application/pdf") {
+    throw new PdfError("File is not a PDF", bookId);
+  }
+};
+
 const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
   // Download the PDF file from the URL
   logger.info("downloading pdf for book " + book.id);
@@ -48,6 +62,8 @@ const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
     responseType: "arraybuffer",
   });
   const pdfBuffer = response.data;
+  //Check mime type
+  await checkMimeType(pdfBuffer, book.id);
   //Get cover image
   const coverUrl = await storeAsImageAndGetCoverUrl(pdfBuffer);
   // Parse PDF data

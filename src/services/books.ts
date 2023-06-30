@@ -17,6 +17,7 @@ import {
 } from "@services/openai";
 import { getDetailsFromUser } from "@services/github";
 import { delay } from "@utils/general";
+import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails, FreshBook } from "@ctypes/books";
 import { BookMessage } from "@ctypes/discord";
@@ -28,11 +29,12 @@ const logger = Logger(module);
 
 //Read
 const getAllBooks = (): Promise<Book[]> => {
-  return db("books").select("*");
+  return db("books").select("*").where("blacklisted", false);
 };
 
 const getBooksWithoutDetails = (): Promise<Book[]> => {
   return db("books")
+    .where("blacklisted", false)
     .leftJoin("book_details", "books.id", "book_details.book_id")
     .whereNull("book_details.book_id")
     .select("books.id", "books.file");
@@ -51,6 +53,7 @@ const getAllBooksAndDetails = (
     .as("keywords_subquery");
 
   let query = db("books as b")
+    .where("b.blacklisted", false)
     .innerJoin("uploaders as u", "b.uploader_id", "u.uploader_id")
     .innerJoin("book_details as bd", "b.id", "bd.book_id")
     .leftJoin(
@@ -121,6 +124,7 @@ const getAllUploaders = async () => {
 
 const getDateFromLatestBook = async (): Promise<number | null> => {
   const result = await db("books")
+    .where("blacklisted", false)
     .select("date")
     .orderBy("date", "desc")
     .limit(1);
@@ -171,6 +175,7 @@ const mapBookMessagesToMessageAuthors = (
 const pruneBooks = async (books: FreshBook[]) => {
   //Check if books exist in DB by searching for file, if they do, remove them from the array
   const existingBooks = await db("books")
+    .where("blacklisted", false)
     .whereIn(
       "file",
       books.map((book) => book.file)
@@ -181,6 +186,13 @@ const pruneBooks = async (books: FreshBook[]) => {
       (existingBook) => existingBook.file === book.file
     );
   });
+};
+
+const blacklistBook = async (bookId: Number) => {
+  return db("books")
+    .where("blacklisted", false)
+    .where("id", bookId)
+    .update({ blacklisted: true });
 };
 
 const fetchBooks = async () => {
@@ -227,10 +239,21 @@ const fetchUploaders = async (booksMessages) => {
 
 const handleMultipleBooksWithDelay = async (books) => {
   for (const book of books) {
-    const details = await getBookDetailsFromPdfUrl(book);
-    await saveBookDetails([details]);
-    logger.info("Delaying Download of next book");
-    await delay(250);
+    try {
+      const details = await getBookDetailsFromPdfUrl(book);
+      await saveBookDetails([details]);
+      logger.info("Delaying Download of next book");
+      await delay(250);
+    } catch (e) {
+      if (e instanceof PdfError) {
+        await blacklistBook(e.bookId);
+      }
+      if (e.message) {
+        logger.error("Error while downloading book: " + e.message);
+      } else {
+        console.log(e);
+      }
+    }
   }
 };
 
@@ -240,20 +263,32 @@ let isRefreshing = false;
 
 // A function for handling books without details
 const handleBooksWithoutDetails = async () => {
-  const booksWithoutDetails = await getBooksWithoutDetails();
-  if (booksWithoutDetails.length > 5) {
-    handleMultipleBooksWithDelay(booksWithoutDetails).then(
-      () => (isRefreshing = false)
+  try {
+    const booksWithoutDetails = await getBooksWithoutDetails();
+    if (booksWithoutDetails.length > 5) {
+      handleMultipleBooksWithDelay(booksWithoutDetails).then(
+        () => (isRefreshing = false)
+      );
+      return "Refreshing books";
+    }
+    const bookDetailsPromises = booksWithoutDetails.map((b) =>
+      getBookDetailsFromPdfUrl(b)
     );
-    return "Refreshing books";
+    const bookDetails = await Promise.all(bookDetailsPromises);
+    await saveBookDetails(bookDetails);
+    isRefreshing = false;
+    return "Refreshed books";
+  } catch (error) {
+    if (error instanceof PdfError) {
+      logger.error(
+        `Incorrect PDF for book id ${error.bookId} while executing Promise.all in handleBooksWithoutDetails`
+      );
+      await blacklistBook(error.bookId);
+    }
+    if (error.message) {
+      logger.error("Error while downloading book: " + error.message);
+    }
   }
-  const bookDetailsPromises = booksWithoutDetails.map((b) =>
-    getBookDetailsFromPdfUrl(b)
-  );
-  const bookDetails = await Promise.all(bookDetailsPromises);
-  await saveBookDetails(bookDetails);
-  isRefreshing = false;
-  return "Refreshed books";
 };
 
 const refreshBooks = async () => {
@@ -306,16 +341,28 @@ const booksWithoutCoverImages = async () => {
 const updateCoverImages = async (booksToUpdate) => {
   // For each book
   for (const book of booksToUpdate) {
-    // Get book object to use for getBookDetailsFromPdfUrl function
-    const bookObject = await db("books").where("id", book.book_id).first();
-    // Fetch book details
-    const newBookDetails = await getBookDetailsFromPdfUrl(bookObject);
-    // Update book details in the database
-    await db("book_details").where("book_id", book.book_id).update({
-      cover_image: newBookDetails.cover_image,
-    });
-    logger.info(`Updated cover image for book ${book.book_id}`);
-    await delay(250);
+    try {
+      // Get book object to use for getBookDetailsFromPdfUrl function
+      const bookObject = await db("books").where("id", book.book_id).first();
+      // Fetch book details
+      const newBookDetails = await getBookDetailsFromPdfUrl(bookObject);
+      // Update book details in the database
+      await db("book_details").where("book_id", book.book_id).update({
+        cover_image: newBookDetails.cover_image,
+      });
+      logger.info(`Updated cover image for book ${book.book_id}`);
+      await delay(250);
+    } catch (error) {
+      if (error instanceof PdfError) {
+        logger.error(
+          `Incorrect PDF for book id ${error.bookId} while executing Promise.all in handleBooksWithoutDetails`
+        );
+        await blacklistBook(error.bookId);
+      }
+      if (error.message) {
+        logger.error("Error while downloading book: " + error.message);
+      }
+    }
   }
 
   // If there are still books to update, function can be run again
@@ -479,6 +526,7 @@ export {
   getBooksWithNoSubjectNorDescription,
   getBooksWithoutKeywords,
   saveBook,
+  blacklistBook,
   getAllUploaders,
   getDateFromLatestBook,
   refreshBooks,
