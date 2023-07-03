@@ -3,6 +3,7 @@ import repoController from "./repo";
 import statusController from "./status";
 import updateController from "./update";
 import authController from "./auth";
+import qController from "./queue";
 // import dbController from '@controllers/db';
 
 const apiPaths = [
@@ -25,6 +26,10 @@ const apiPaths = [
   {
     path: "/auth",
     handler: authController,
+  },
+  {
+    path: "/queue",
+    handler: qController,
   },
 ].map((c) => ({ ...c, path: `/api${c.path}` }));
 

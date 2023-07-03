@@ -1,10 +1,6 @@
 import * as amqp from "amqplib";
 import { AMPQ_URL, AMPQ_QUEUE_NAME } from "@config";
-
-interface Job {
-  id: number;
-  title: string;
-}
+import { Job } from "@ctypes/queue";
 
 async function connect() {
   try {
@@ -17,10 +13,7 @@ async function connect() {
     channel.consume(AMPQ_QUEUE_NAME, (message) => {
       if (message !== null) {
         const input: Job = JSON.parse(message.content.toString());
-        console.log(
-          `Received job with id ${input.id} and title ${input.title}`
-        );
-
+        console.log(`Received job with id ${input.id} and title ${input.type}`);
         // If job is successful, acknowledge the job (remove it from queue)
         channel.ack(message);
       }
