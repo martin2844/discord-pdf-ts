@@ -67,6 +67,7 @@ const getAllBooksAndDetails = (
       "bd.id as book_details_id",
       "b.uploader_id",
       "b.file",
+      "b.downloads",
       "b.date",
       "u.name",
       "u.avatar",

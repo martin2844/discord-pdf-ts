@@ -13,4 +13,6 @@ export const {
   OPENAI_KEY,
   API_PASSWORD,
   JWT_SECRET,
+  AMPQ_URL,
+  AMPQ_QUEUE_NAME,
 } = process.env;

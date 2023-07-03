@@ -10,7 +10,6 @@ import { Uploader } from "@ctypes/uploaders";
 const logger = Logger(module);
 
 export default async function () {
-  logger.info("Initializing discord client");
   await client.login(BOT_TOKEN);
 }
 
