@@ -6,13 +6,12 @@ import {
   refreshBooks,
   getBooksWithNoSubjectNorDescription,
   getBooksWithoutKeywords,
-  updateBookDescription,
-  updateBookSubject,
-  updateKeywords,
 } from "@services/books";
-import Logger from "@utils/logger";
+import {
+  enqueueAiDescriptionJob,
+  enqueueAiKeywordsJob,
+} from "@/services/queue";
 
-const logger = Logger(module);
 const router = express.Router();
 
 router.post("/books", async (req, res) => {
@@ -24,30 +23,10 @@ router.post("/details", Auth, async (req, res) => {
   if (req.body.aiData) {
     const booksWithNoSubOrDesc = await getBooksWithNoSubjectNorDescription();
     const booksWithoutKeywords = await getBooksWithoutKeywords();
-
-    const aiPromises = [];
-
-    booksWithNoSubOrDesc.forEach((book) => {
-      aiPromises.push(updateBookDescription(book));
-      aiPromises.push(updateBookSubject(book));
-      if (booksWithoutKeywords.includes(book)) {
-        aiPromises.push(updateKeywords(book));
-      }
-    });
-
-    booksWithoutKeywords.forEach((book) => {
-      if (!booksWithNoSubOrDesc.includes(book)) {
-        aiPromises.push(updateKeywords(book));
-      }
-    });
-
-    Promise.all(aiPromises).then(() => {
-      logger.info("All books updated");
-    });
-
+    booksWithNoSubOrDesc.forEach((b) => enqueueAiDescriptionJob(b));
+    booksWithoutKeywords.forEach((b) => enqueueAiKeywordsJob(b));
     return res.json({ status: "Working on it" });
   }
-
   const status = await enqueueBooksWithoutDetails();
   res.json({ status });
 });

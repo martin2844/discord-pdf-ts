@@ -364,6 +364,11 @@ const addBooksFromGH = async (books: FreshBook[], repoUser: string) => {
   return enqueueBooksWithoutDetails();
 };
 
+/**
+ * Updates the description of a book in the database based on specific conditions.
+ * @param {number} bookId - The ID of the book to update the description for.
+ * @returns {Promise<string>} - A promise that resolves to a string indicating the result of the update operation.
+ */
 const updateBookDescription = async (bookId: number) => {
   // Fetch book with specific conditions
   const book = await db("book_details")
@@ -394,6 +399,11 @@ const updateBookDescription = async (bookId: number) => {
   return "Book description updated.";
 };
 
+/**
+ * Updates the keywords of a book in the database based on specific conditions.
+ * @param {number} bookId - The ID of the book to update the keywords for.
+ * @returns {Promise<string>} - A promise that resolves to a string indicating the result of the update operation.
+ */
 const updateKeywords = async (bookId: number) => {
   // Step 1: Search for the book in the DB
   const book = await db("book_details")
@@ -424,10 +434,21 @@ const updateKeywords = async (bookId: number) => {
       (k) => !existingKeywordNames.includes(k)
     );
     // Insert new keywords
-    const insertedKeywordObjects = await db("keywords").insert(
-      newKeywords.map((k) => ({ keyword: k })),
-      ["id", "keyword"]
-    );
+    const insertedKeywordObjects = [];
+    for (let keyword of newKeywords) {
+      const existingKeyword = await db("keywords")
+        .where("keyword", keyword)
+        .first();
+      if (!existingKeyword) {
+        const [insertedKeyword] = await db("keywords").insert(
+          { keyword: keyword },
+          ["id", "keyword"]
+        );
+        insertedKeywordObjects.push(insertedKeyword);
+      } else {
+        insertedKeywordObjects.push(existingKeyword);
+      }
+    }
     // Combine existing and newly inserted keywords
     const allKeywordObjects = [
       ...existingKeywordObjects,
@@ -443,6 +464,11 @@ const updateKeywords = async (bookId: number) => {
   return "Keywords updated for the book.";
 };
 
+/**
+ * Updates the subject of a book in the database based on specific conditions.
+ * @param {number} bookId - The ID of the book to update the subject for.
+ * @returns {Promise<string>} - A promise that resolves to a string indicating the result of the update operation.
+ */
 const updateBookSubject = async (bookId: number) => {
   // Step 1: Search for the book in the DB
   const book = await db("book_details")
@@ -472,6 +498,10 @@ const updateBookSubject = async (bookId: number) => {
   return "Book subject updated.";
 };
 
+/**
+ * Retrieves the book IDs of books that have no subject or description in the database based on specific conditions.
+ * @returns {Promise<number[]>} - A promise that resolves to an array of book IDs.
+ */
 const getBooksWithNoSubjectNorDescription = async (): Promise<number[]> => {
   const bookIds = await db("book_details")
     .where((builder) => {
@@ -489,6 +519,10 @@ const getBooksWithNoSubjectNorDescription = async (): Promise<number[]> => {
   return bookIds;
 };
 
+/**
+ * Retrieves the book IDs of books that have no associated keywords in the database based on specific conditions.
+ * @returns {Promise<number[]>} - A promise that resolves to an array of book IDs.
+ */
 const getBooksWithoutKeywords = async (): Promise<number[]> => {
   const bookIds = await db("book_details")
     .leftJoin("book_keywords", "book_details.book_id", "book_keywords.book_id")

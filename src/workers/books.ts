@@ -1,16 +1,33 @@
 import * as amqp from "amqplib";
 import { AMPQ_URL, AMPQ_QUEUE_NAME } from "@config";
 import { Job, JobType } from "@ctypes/queue";
-import { sourceAndSaveBookDetails } from "@/services/books";
+import {
+  sourceAndSaveBookDetails,
+  updateBookDescription,
+  updateBookSubject,
+  updateKeywords,
+} from "@/services/books";
+import { up } from "@/db/migrations/00_initial_tables";
 
 const sourceDetails = async (bookId: number) => {
   await sourceAndSaveBookDetails(bookId);
+};
+
+const updateDescriptionAndSubject = async (bookId: number) => {
+  await updateBookDescription(bookId);
+  await updateBookSubject(bookId);
 };
 
 const processJob = async (job: Job) => {
   switch (job.type) {
     case JobType.DETAILS:
       await sourceDetails(job.id);
+      break;
+    case JobType.AI_DESCRIPTION:
+      await updateDescriptionAndSubject(job.id);
+      break;
+    case JobType.AI_KEYWORDS:
+      await updateKeywords(job.id);
       break;
     case JobType.HEALTH:
       console.log("Health check");

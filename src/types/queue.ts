@@ -9,4 +9,6 @@ export enum JobType {
   RATINGS = 2,
   REVIEWS = 3,
   UPLOADER = 4,
+  AI_KEYWORDS = 5,
+  AI_DESCRIPTION = 6,
 }
