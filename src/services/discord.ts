@@ -13,6 +13,10 @@ export default async function () {
   await client.login(BOT_TOKEN);
 }
 
+/**
+ * Retrieves the Discord client instance.
+ * @returns {Promise<Discord.Client>} - A promise that resolves to the Discord client instance.
+ */
 const DiscordClient = async (): Promise<Discord.Client> => {
   if (!client.readyAt) {
     await new Promise((resolve) => client.once("ready", resolve));
@@ -20,6 +24,14 @@ const DiscordClient = async (): Promise<Discord.Client> => {
   return client;
 };
 
+/**
+ * Fetches all messages with PDF attachments from a Discord channel.
+ * @param {Discord.TextChannel | string} channel - The Discord text channel or its ID to fetch messages from.
+ * @param {string} lastId - The ID of the last processed message.
+ * @param {number} lastTimestamp - The timestamp of the latest message in the database.
+ * @param {BookMessage[]} messagesWithPdfs - An array of BookMessage objects representing messages with PDF attachments (optional).
+ * @returns {Promise<BookMessage[]>} - A promise that resolves to an array of BookMessage objects with PDF attachments.
+ */
 const fetchAllMessagesWithPdfs = async (
   channel: Discord.TextChannel | string,
   lastId,
@@ -73,6 +85,11 @@ const fetchAllMessagesWithPdfs = async (
   );
 };
 
+/**
+ * Fetches a PDF attachment from a single Discord message.
+ * @param {Discord.Message} msg - The Discord message to fetch the PDF from.
+ * @returns {Promise<BookMessage | null>} - A promise that resolves to a BookMessage object representing the fetched PDF, or null if no PDF is found.
+ */
 const fetchPdfFromSingleMessage = async (
   msg: Discord.Message
 ): Promise<BookMessage | null> => {
@@ -101,6 +118,11 @@ const fetchPdfFromSingleMessage = async (
   return null;
 };
 
+/**
+ * Fetches avatars for the given uploaders.
+ * @param {Uploader[]} uploaders - An array of uploaders to fetch avatars for.
+ * @returns {Promise<Uploader[]>} - A promise that resolves to an array of uploaders with updated avatars.
+ */
 const fetchAvatars = async (uploaders: Uploader[]) => {
   const client = await DiscordClient();
   const promises = uploaders.map((uploader) => {

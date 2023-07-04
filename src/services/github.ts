@@ -8,6 +8,12 @@ const octokit = new Octokit({
   auth: GITHUB_PAT,
 });
 
+/**
+ * Extracts the username and repository name from a GitHub URL.
+ * @param {string} githubUrl - The GitHub URL to parse.
+ * @returns {{ user: string, repo: string }} - An object containing the username and repository name.
+ * @throws {Error} - If the URL is not a valid GitHub URL or does not contain a username and repository name.
+ */
 function getUserAndRepoFromUrl(githubUrl: string) {
   const parsedUrl = url.parse(githubUrl);
   if (parsedUrl.host !== "github.com") {
@@ -27,6 +33,12 @@ function getUserAndRepoFromUrl(githubUrl: string) {
   };
 }
 
+/**
+ * Retrieves all PDF files from a GitHub repository.
+ * @param {string} owner - The username or organization name that owns the repository.
+ * @param {string} repo - The name of the repository.
+ * @returns {Promise<BookMessage[]>} - A promise that resolves to an array of BookMessage objects representing the retrieved PDF files.
+ */
 async function getAllPdfs(owner: GithubUserName, repo: string) {
   const {
     data: { default_branch },
@@ -63,11 +75,21 @@ async function getAllPdfs(owner: GithubUserName, repo: string) {
   }));
 }
 
+/**
+ * Retrieves PDF files from a GitHub repository using the provided GitHub URL.
+ * @param {string} githubUrl - The GitHub URL of the repository.
+ * @returns {Promise<BookMessage[]>} - A promise that resolves to an array of BookMessage objects representing the retrieved PDF files.
+ */
 const getPdfsFromRepo = async (githubUrl: string) => {
   const { user, repo } = getUserAndRepoFromUrl(githubUrl);
   return getAllPdfs(user, repo);
 };
 
+/**
+ * Retrieves details of a GitHub user.
+ * @param {GithubUserName} user - The username of the GitHub user.
+ * @returns {Promise<Uploader>} - A promise that resolves to an Uploader object representing the user details.
+ */
 async function getDetailsFromUser(user: GithubUserName): Promise<Uploader> {
   const {
     data: { name, avatar_url },

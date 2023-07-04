@@ -4,6 +4,7 @@ import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
 import PDFParser from "pdf-parse";
 
 import { uploadToImgur } from "@services/imgur";
+import { cloudinaryUpload } from "@services/cloudinary";
 import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails } from "@ctypes/books";
@@ -38,7 +39,8 @@ const storeAsImageAndGetCoverUrl = async (pdfBuffer: Buffer) => {
   };
   const convert = fromBuffer(pdfBuffer, options);
   const picture: ToBase64Response = await convert(1, true);
-  const coverUrl = await uploadToImgur(picture.base64);
+  let coverUrl = await uploadToImgur(picture.base64);
+  if (!coverUrl) coverUrl = await cloudinaryUpload(picture.base64);
   return coverUrl;
 };
 
