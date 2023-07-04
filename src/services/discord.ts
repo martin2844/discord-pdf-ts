@@ -101,7 +101,7 @@ const fetchPdfFromSingleMessage = async (
   return null;
 };
 
-const fetchAvatarsForUploaders = async (uploaders: Uploader[]) => {
+const fetchAvatars = async (uploaders: Uploader[]) => {
   const client = await DiscordClient();
   const promises = uploaders.map((uploader) => {
     return client.users.fetch(uploader.uploader_id);
@@ -155,4 +155,4 @@ DiscordClient().then((c) =>
   })
 );
 
-export { DiscordClient, fetchAllMessagesWithPdfs, fetchAvatarsForUploaders };
+export { DiscordClient, fetchAllMessagesWithPdfs, fetchAvatars };

@@ -42,15 +42,11 @@ const storeAsImageAndGetCoverUrl = async (pdfBuffer: Buffer) => {
   return coverUrl;
 };
 
-//This dynamic import manneuver is to avoid mjs/ts errors
-let fileTypeFromBuffer: any;
+//TODO Need to refactor, this is doubling the parsing.
 const checkMimeType = async (pdfBuffer: Buffer, bookId: number) => {
-  if (!fileTypeFromBuffer) {
-    const fileTypeModule = await import("file-type");
-    fileTypeFromBuffer = fileTypeModule.fileTypeFromBuffer;
-  }
-  const fileType = await fileTypeFromBuffer(pdfBuffer);
-  if (!fileType || fileType.mime !== "application/pdf") {
+  try {
+    await PDFParser(pdfBuffer);
+  } catch (error) {
     throw new PdfError("File is not a PDF", bookId);
   }
 };

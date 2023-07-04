@@ -1,12 +1,8 @@
 import db from "@db";
-import {
-  DiscordClient,
-  fetchAllMessagesWithPdfs,
-  fetchAvatarsForUploaders,
-} from "@services/discord";
+import { DiscordClient, fetchAllMessagesWithPdfs } from "@services/discord";
 import {
   checkIfUploaderExists,
-  getUnexistingUploaders,
+  fetchUploaders,
   saveUploaders,
 } from "@services/uploaders";
 import { getBookDetailsFromPdfUrl } from "@services/pdf";
@@ -16,7 +12,6 @@ import {
   getAiSubject,
 } from "@services/openai";
 import { getDetailsFromUser } from "@services/github";
-import { delay } from "@utils/general";
 import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails, FreshBook } from "@ctypes/books";
@@ -24,14 +19,32 @@ import { BookMessage } from "@ctypes/discord";
 import { BOOK_CHANNEL_ID } from "@config";
 
 import { uniqBy } from "lodash";
+import { enqueueDetailsJob } from "./queue";
+import { Uploader } from "@/types/uploaders";
 
 const logger = Logger(module);
 
-//Read
+/**
+ * Retrieves a book from the database by its ID.
+ * @param {number} id - The ID of the book to retrieve.
+ * @returns {Promise<Book>} - A promise that resolves to the retrieved book.
+ */
+const getBookById = (id: number): Promise<Book> => {
+  return db("books").select("*").where("id", id).first();
+};
+
+/**
+ * Retrieves all books from the database that are not blacklisted.
+ * @returns {Promise<Book[]>} - A promise that resolves to an array of all non-blacklisted books.
+ */
 const getAllBooks = (): Promise<Book[]> => {
   return db("books").select("*").where("blacklisted", false);
 };
 
+/**
+ * Retrieves books from the database that do not have associated book details.
+ * @returns {Promise<Book[]>} - A promise that resolves to an array of books without details.
+ */
 const getBooksWithoutDetails = (): Promise<Book[]> => {
   return db("books")
     .where("blacklisted", false)
@@ -40,6 +53,11 @@ const getBooksWithoutDetails = (): Promise<Book[]> => {
     .select("books.id", "books.file");
 };
 
+/**
+ * Retrieves all books with their details.
+ * @param {any} filters - Optional filters to apply to the query.
+ * @returns {Promise<(Book & BookDetails)[]>} - A promise that resolves to an array of books with details.
+ */
 const getAllBooksAndDetails = (
   filters: any = {}
 ): Promise<(Book & BookDetails)[]> => {
@@ -119,10 +137,10 @@ const getAllBooksAndDetails = (
   return query;
 };
 
-const getAllUploaders = async () => {
-  return db("uploaders").select("*");
-};
-
+/**
+ * Retrieves the date from the latest book.
+ * @returns {Promise<number | null>} - A promise that resolves to the date (in milliseconds) of the latest book, or null if no books exist.
+ */
 const getDateFromLatestBook = async (): Promise<number | null> => {
   const result = await db("books")
     .where("blacklisted", false)
@@ -133,22 +151,29 @@ const getDateFromLatestBook = async (): Promise<number | null> => {
   return result[0] ? new Date(result[0].date).getTime() : null;
 };
 
-const saveBook = async (book: Book): Promise<void> => {
-  return db("books").insert({
-    uploader_id: book.uploader_id,
-    date: book.date,
-    file: book.file,
-  });
-};
-
+/**
+ * Saves multiple books.
+ * @param {FreshBook[]} books - An array of fresh books to be saved.
+ * @returns {Promise<void>} - A promise that resolves once the books are saved.
+ */
 const saveBooks = async (books: FreshBook[]) => {
   return db("books").insert(books);
 };
 
+/**
+ * Saves book details.
+ * @param {BookDetails[]} booksDetails - An array of book details objects to be saved.
+ * @returns {Promise<void>} - A promise that resolves once the book details are saved.
+ */
 const saveBookDetails = async (booksDetails: BookDetails[]): Promise<void> => {
   return db("book_details").insert(booksDetails);
 };
 
+/**
+ * Maps an array of book messages to an array of fresh books.
+ * @param {BookMessage[]} bookMessages - An array of book messages to be mapped.
+ * @returns {FreshBook[]} - An array of fresh books mapped from the book messages.
+ */
 const mapBookMessagesToBooks = (bookMessages: BookMessage[]): FreshBook[] => {
   return bookMessages.map((bookMessage) => {
     return {
@@ -159,20 +184,31 @@ const mapBookMessagesToBooks = (bookMessages: BookMessage[]): FreshBook[] => {
   });
 };
 
+/**
+ * Maps an array of book messages to an array of message authors.
+ * @param {BookMessage[]} bookMessages - An array of book messages to be mapped.
+ * @returns {{ uploader_id: string; name: string }[]} - An array of message authors mapped from the book messages.
+ */
 const mapBookMessagesToMessageAuthors = (
   bookMessages: BookMessage[]
-): { uploader_id: string; name: string }[] => {
+): Uploader[] => {
   return uniqBy(
     bookMessages.map((bookMessage) => {
       return {
         uploader_id: bookMessage.author_id,
         name: bookMessage.author_tag,
+        source: "discord",
       };
     }),
     (bm) => bm.uploader_id
   );
 };
 
+/**
+ * Safety function that checks if books exist in DB before saving them.
+ * @param {FreshBook[]} books - An array of books to be pruned.
+ * @returns {Promise<FreshBook[]>} - A promise that resolves to an array of pruned books.
+ */
 const pruneBooks = async (books: FreshBook[]) => {
   //Check if books exist in DB by searching for file, if they do, remove them from the array
   const existingBooks = await db("books")
@@ -189,6 +225,11 @@ const pruneBooks = async (books: FreshBook[]) => {
   });
 };
 
+/**
+ * Makes a book blacklisted.
+ * @param {number} bookId - The ID of the book to be blacklisted.
+ * @returns {Promise<number>} - A promise that resolves to the number of updated records.
+ */
 const blacklistBook = async (bookId: Number) => {
   return db("books")
     .where("blacklisted", false)
@@ -196,7 +237,14 @@ const blacklistBook = async (bookId: Number) => {
     .update({ blacklisted: true });
 };
 
-const fetchBooks = async () => {
+/**
+ * Fetches fresh books and their associated book messages.
+ * @returns {Promise<{ books: FreshBook[], booksMessages: BookMessage[] }>} - A promise that resolves to an object containing the fetched books and their associated book messages.
+ */
+const fetchBooks = async (): Promise<{
+  books: FreshBook[];
+  booksMessages: BookMessage[];
+}> => {
   const client = await DiscordClient();
   logger.info(
     `Ready! Logged in as ${client.user.tag} at ${BOOK_CHANNEL_ID} and about to FETCH fresh books`
@@ -211,74 +259,66 @@ const fetchBooks = async () => {
     return;
   }
   const books = await pruneBooks(mapBookMessagesToBooks(booksMessages));
-  if (books) {
-    await saveBooks(books);
-  }
-  return booksMessages;
+  return {
+    books,
+    booksMessages,
+  };
 };
 
+/**
+ * Adds a single book from a book message.
+ * @param {BookMessage} bookMessage - The book message containing the book to be added.
+ * @returns {Promise<void>} - A promise that resolves once the book is added and book details are fetched.
+ */
 const addSingleBookFromMessage = async (bookMessage: BookMessage) => {
   //1. check if uploader exists
-  await fetchUploaders([bookMessage]);
+  const uploaders = mapBookMessagesToMessageAuthors([bookMessage]);
+  await fetchUploaders(uploaders);
   //2. save book
   await saveBooks(await pruneBooks(mapBookMessagesToBooks([bookMessage])));
   //4. fetch book details
-  return handleBooksWithoutDetails();
+  return enqueueBooksWithoutDetails();
 };
 
-// A function for fetching Discord uploaders
-const fetchUploaders = async (booksMessages) => {
-  const messageAuthors = mapBookMessagesToMessageAuthors(booksMessages);
-  const newUploaders = await getUnexistingUploaders(
-    messageAuthors.map((m) => ({ ...m, source: "discord" }))
-  );
-  if (newUploaders.length) {
-    const uploaders = await fetchAvatarsForUploaders(newUploaders);
-    await saveUploaders(uploaders);
+/**
+ * Gets a book from the database and saves its details, including the cover image.
+ * @param {number} bookId - The ID of the book to fetch and save details for.
+ * @returns {Promise<BookDetails>} - A promise that resolves to the saved book details.
+ * @throws {Error} - If the book is not found or an error occurs during the process.
+ */
+const sourceAndSaveBookDetails = async (bookId: number) => {
+  const book = await getBookById(bookId);
+  if (!book) {
+    throw new Error("Book not found");
   }
-};
-
-const handleMultipleBooksWithDelay = async (books) => {
-  for (const book of books) {
-    try {
-      const details = await getBookDetailsFromPdfUrl(book);
-      await saveBookDetails([details]);
-      logger.info("Delaying Download of next book");
-      await delay(250);
-    } catch (e) {
-      if (e instanceof PdfError) {
-        await blacklistBook(e.bookId);
-      }
-      if (e.message) {
-        logger.error("Error while downloading book: " + e.message);
-      } else {
-        console.log(e);
-      }
+  try {
+    const details = await getBookDetailsFromPdfUrl(book);
+    await saveBookDetails([details]);
+    return details;
+  } catch (error) {
+    if (error instanceof PdfError) {
+      logger.error(
+        `Incorrect PDF for book id ${error.bookId} while executing sourceAndSaveBookDetails`
+      );
+      await blacklistBook(error.bookId);
+    } else {
+      throw error;
     }
   }
 };
 
-// In memory tracking of refresh status, to prevent double hit;
-// A more advance application would use something like redis redlock
-let isRefreshing = false;
-
-// A function for handling books without details
-const handleBooksWithoutDetails = async () => {
+/**
+ * Enqueues a job for each book without details to fetch the details later via a worker.
+ * @returns {Promise<string>} - A promise that resolves to a message indicating the result of the enqueueing process.
+ */
+const enqueueBooksWithoutDetails = async () => {
   try {
     const booksWithoutDetails = await getBooksWithoutDetails();
-    if (booksWithoutDetails.length > 5) {
-      handleMultipleBooksWithDelay(booksWithoutDetails).then(
-        () => (isRefreshing = false)
-      );
-      return "Refreshing books";
-    }
     const bookDetailsPromises = booksWithoutDetails.map((b) =>
-      getBookDetailsFromPdfUrl(b)
+      enqueueDetailsJob(b.id)
     );
-    const bookDetails = await Promise.all(bookDetailsPromises);
-    await saveBookDetails(bookDetails);
-    isRefreshing = false;
-    return "Refreshed books";
+    await Promise.all(bookDetailsPromises);
+    return "Enqueued jobs for books without details";
   } catch (error) {
     if (error instanceof PdfError) {
       logger.error(
@@ -292,27 +332,21 @@ const handleBooksWithoutDetails = async () => {
   }
 };
 
+/**
+ * Sources books from unread Discord messages and saves them to the database. It also saves the uploaders.
+ * @returns {Promise<string>} - A promise that resolves to a message indicating the result of the refresh process.
+ */
 const refreshBooks = async () => {
-  if (isRefreshing) {
-    return "Already refreshing";
+  const { booksMessages, books } = await fetchBooks();
+  if (books.length) {
+    await saveBooks(books);
+    //Save books if there are
+    await fetchUploaders(mapBookMessagesToMessageAuthors(booksMessages));
+    //After saving enqueue book details jobs
+    await enqueueBooksWithoutDetails();
+    return `Enqueued jobs for ${books.length} books`;
   }
-  isRefreshing = true;
-  const booksMessages = await fetchBooks();
-  if (booksMessages) {
-    await fetchUploaders(booksMessages);
-    return await handleBooksWithoutDetails();
-  }
-  if (!booksMessages) {
-    //If no books message, check if there are any books without cover
-    const booksWithoutCover = await booksWithoutCoverImages();
-    if (booksWithoutCover.length) {
-      //If there are books without cover, update them
-      updateCoverImages(booksWithoutCover).then(() => (isRefreshing = false));
-      return "Refreshing Cover images";
-    }
-  }
-  isRefreshing = false;
-  return "Books up to date";
+  return "Up To date";
 };
 
 const addBooksFromGH = async (books: FreshBook[], repoUser: string) => {
@@ -327,59 +361,7 @@ const addBooksFromGH = async (books: FreshBook[], repoUser: string) => {
   //3. Save Books
   await saveBooks(books);
   //4. Save Book Details
-  return handleBooksWithoutDetails();
-};
-
-const booksWithoutCoverImages = async () => {
-  // Get book details without cover images (limit to 5)
-  const booksToUpdate = await db("book_details")
-    .where("cover_image", "")
-    .limit(5)
-    .select("*");
-  return booksToUpdate;
-};
-
-const updateCoverImages = async (booksToUpdate) => {
-  // For each book
-  for (const book of booksToUpdate) {
-    try {
-      // Get book object to use for getBookDetailsFromPdfUrl function
-      const bookObject = await db("books").where("id", book.book_id).first();
-      // Fetch book details
-      const newBookDetails = await getBookDetailsFromPdfUrl(bookObject);
-      // Update book details in the database
-      await db("book_details").where("book_id", book.book_id).update({
-        cover_image: newBookDetails.cover_image,
-      });
-      logger.info(`Updated cover image for book ${book.book_id}`);
-      await delay(250);
-    } catch (error) {
-      if (error instanceof PdfError) {
-        logger.error(
-          `Incorrect PDF for book id ${error.bookId} while executing Promise.all in handleBooksWithoutDetails`
-        );
-        await blacklistBook(error.bookId);
-      }
-      if (error.message) {
-        logger.error("Error while downloading book: " + error.message);
-      }
-    }
-  }
-
-  // If there are still books to update, function can be run again
-  const remainingBooksCount = await db("book_details")
-    .whereNull("cover_image")
-    .count("book_id as count");
-
-  const remainingBooksCountNumber = Number(remainingBooksCount[0].count);
-
-  if (remainingBooksCountNumber > 0) {
-    logger.info(
-      `${remainingBooksCount[0].count} books remaining to update. Run the function again.`
-    );
-  } else {
-    logger.info(`All books are updated.`);
-  }
+  return enqueueBooksWithoutDetails();
 };
 
 const updateBookDescription = async (bookId: number) => {
@@ -526,13 +508,11 @@ export {
   getAllBooksAndDetails,
   getBooksWithNoSubjectNorDescription,
   getBooksWithoutKeywords,
-  saveBook,
   blacklistBook,
-  getAllUploaders,
   getDateFromLatestBook,
   refreshBooks,
-  handleBooksWithoutDetails,
-  isRefreshing,
+  enqueueBooksWithoutDetails,
+  sourceAndSaveBookDetails,
   addBooksFromGH,
   addSingleBookFromMessage,
   updateBookDescription,

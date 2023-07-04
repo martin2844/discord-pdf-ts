@@ -5,7 +5,7 @@ import Logger from "@utils/logger";
 const logger = Logger(module);
 interface Job {
   id: number;
-  type: string;
+  type: number;
 }
 
 let QUEUE: amqp.Channel;
@@ -26,4 +26,18 @@ async function enqueue(job: Job) {
   logger.info(`Job sent successfully ${job.id}`);
 }
 
-export { connectQ, enqueue };
+async function getQueueStatus() {
+  try {
+    const q = await QUEUE.checkQueue(AMPQ_QUEUE_NAME);
+    if (q.messageCount > 0) {
+      return "Busy working";
+    } else {
+      return "Idle, ready to work";
+    }
+  } catch (ex) {
+    console.error(ex);
+    return "Error occurred";
+  }
+}
+
+export { connectQ, enqueue, getQueueStatus };

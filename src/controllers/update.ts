@@ -2,7 +2,7 @@ import express from "express";
 
 import Auth from "@middleware/auth";
 import {
-  handleBooksWithoutDetails,
+  enqueueBooksWithoutDetails,
   refreshBooks,
   getBooksWithNoSubjectNorDescription,
   getBooksWithoutKeywords,
@@ -48,7 +48,7 @@ router.post("/details", Auth, async (req, res) => {
     return res.json({ status: "Working on it" });
   }
 
-  const status = await handleBooksWithoutDetails();
+  const status = await enqueueBooksWithoutDetails();
   res.json({ status });
 });
 

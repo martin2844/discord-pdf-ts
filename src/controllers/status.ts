@@ -1,11 +1,12 @@
 import express from "express";
-
-import { refreshBooks, isRefreshing } from "@services/books";
+import { getQueueStatus } from "@services/ampq";
+import { refreshBooks } from "@services/books";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
-  res.json({ status: isRefreshing ? "Currently Working" : "Ready to work" });
+router.get("/", async (_req, res) => {
+  const status = await getQueueStatus();
+  res.json({ status: status });
 });
 
 router.post("/", async (req, res) => {
