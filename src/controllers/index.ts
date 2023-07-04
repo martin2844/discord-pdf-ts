@@ -1,15 +1,26 @@
 import booksController from "./books";
+import suggestionsController from "./suggestions";
 import repoController from "./repo";
 import statusController from "./status";
 import updateController from "./update";
 import authController from "./auth";
 import qController from "./queue";
-// import dbController from '@controllers/db';
+import dbController from "./db";
+import downloadController from "./download";
+import reportsController from "./reports";
 
 const apiPaths = [
   {
     path: "/books",
     handler: booksController,
+  },
+  {
+    path: "/suggestions",
+    handler: suggestionsController,
+  },
+  {
+    path: "/reports",
+    handler: reportsController,
   },
   {
     path: "/repo",
@@ -31,16 +42,16 @@ const apiPaths = [
     path: "/queue",
     handler: qController,
   },
+  {
+    path: "/download",
+    handler: downloadController,
+  },
 ].map((c) => ({ ...c, path: `/api${c.path}` }));
 
 export default [
   ...apiPaths,
-  //   {
-  //     path: '/api/db',
-  //     handler: dbController,
-  //   },
-  //   {
-  //     path: '/',
-  //     handler: viewsController,
-  //   },
+  {
+    path: "/db",
+    handler: dbController,
+  },
 ];

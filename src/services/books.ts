@@ -170,6 +170,15 @@ const saveBookDetails = async (booksDetails: BookDetails[]): Promise<void> => {
 };
 
 /**
+ * Updates a books download count by 1
+ * @param {number} bookId - The ID of the book to update.
+ * @returns {Promise<any>} - A promise that resolves once the book is updated.
+ */
+const addDownloadCountToBook = async (bookId: number): Promise<any> => {
+  return db("books").where("id", bookId).increment("downloads", 1);
+};
+
+/**
  * Maps an array of book messages to an array of fresh books.
  * @param {BookMessage[]} bookMessages - An array of book messages to be mapped.
  * @returns {FreshBook[]} - An array of fresh books mapped from the book messages.
@@ -542,6 +551,7 @@ export {
   getAllBooksAndDetails,
   getBooksWithNoSubjectNorDescription,
   getBooksWithoutKeywords,
+  addDownloadCountToBook,
   blacklistBook,
   getDateFromLatestBook,
   refreshBooks,
