@@ -9,6 +9,7 @@ import {
   deleteReport,
 } from "@services/reports";
 import Auth from "@middleware/auth";
+import { validateReportBody } from "@middleware/reports";
 
 const router = express.Router();
 
@@ -34,13 +35,13 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create new report
-router.post("/", limiter, async (req, res) => {
+router.post("/", limiter, validateReportBody, async (req, res) => {
   const newReport = await createReport(req.body);
   res.status(201).json(newReport);
 });
 
 // Update report
-router.put("/:id", Auth, async (req, res) => {
+router.put("/:id", Auth, validateReportBody, async (req, res) => {
   const updatedRows = await updateReport(Number(req.params.id), req.body);
   if (updatedRows === 0) {
     return res.status(404).json({ error: "Report not found" });

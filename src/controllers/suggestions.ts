@@ -8,6 +8,7 @@ import {
   deleteSuggestion,
 } from "@services/suggestions";
 import Auth from "@middleware/auth";
+import { validateSuggestionBody } from "@middleware/suggestions";
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -35,14 +36,14 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST new suggestion
-router.post("/", limiter, async (req, res) => {
+router.post("/", limiter, validateSuggestionBody, async (req, res) => {
   const newSuggestion = req.body;
   const [id] = await createSuggestion(newSuggestion);
   res.status(201).json({ id, ...newSuggestion });
 });
 
 // PUT update a suggestion
-router.put("/:id", Auth, async (req, res) => {
+router.put("/:id", Auth, validateSuggestionBody, async (req, res) => {
   const id = parseInt(req.params.id);
   const updatedFields = req.body;
   const affectedCount = await updateSuggestion(id, updatedFields);
