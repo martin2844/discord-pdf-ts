@@ -41,7 +41,8 @@ async function connect() {
     const connection = await amqp.connect(AMPQ_URL);
     const channel = await connection.createChannel();
     await channel.assertQueue(AMPQ_QUEUE_NAME);
-
+    // Only fetch one job at a time, cause discord gets finicky if we try to do too much at once
+    await channel.prefetch(1);
     console.log(
       `Worker Ready, waiting for messages in queue ${AMPQ_QUEUE_NAME}...`
     );
