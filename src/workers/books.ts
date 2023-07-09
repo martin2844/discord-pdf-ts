@@ -7,7 +7,6 @@ import {
   updateBookSubject,
   updateKeywords,
 } from "@/services/books";
-import { up } from "@/db/migrations/00_initial_tables";
 
 const sourceDetails = async (bookId: number) => {
   await sourceAndSaveBookDetails(bookId);

@@ -12,6 +12,7 @@ const logger = Logger(module);
  */
 const fetchUploaders = async (uploaders: Uploader[]) => {
   //TODO ENQUEUE UPLOADER JOBS FOR EACH
+  //Map Uploaders to see if they exist first
   const uploadersWithAvatar = await fetchAvatars(uploaders);
   await saveUploaders(uploadersWithAvatar);
 };
@@ -41,7 +42,14 @@ const checkIfUploaderExists = async (uploader_id: string) => {
 };
 
 const saveUploaders = async (uploaders: Uploader[]) => {
-  return db("uploaders").insert(uploaders);
+  await db.transaction(async (trx) => {
+    for (const uploader of uploaders) {
+      await trx.raw(
+        `INSERT OR IGNORE INTO uploaders (uploader_id, name, avatar, source) VALUES (?, ?, ?, ?)`,
+        [uploader.uploader_id, uploader.name, uploader.avatar, uploader.source]
+      );
+    }
+  });
 };
 
 export {
