@@ -38,7 +38,8 @@ jobs:
           password: ${{ secrets.PASSWORD }}  
           script: |
             cd ${{secrets.DIR}}
-            git pull
+            git stash
+            git pull origin master
             npm install 
             npm run build
             cp .env ./dist
