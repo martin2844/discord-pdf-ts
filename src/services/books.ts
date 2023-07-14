@@ -34,6 +34,15 @@ const getBookById = (id: number): Promise<Book> => {
 };
 
 /**
+ * Deletes a book from the database by its ID.
+ * @param {number} id - The ID of the book to delete.
+ * @returns {Promise<number>} - A promise that resolves to the number of rows affected.
+ */
+const deleteBookById = (id: number): Promise<number> => {
+  return db("books").where("id", id).del();
+};
+
+/**
  * Retrieves all books from the database that are not blacklisted.
  * @returns {Promise<Book[]>} - A promise that resolves to an array of all non-blacklisted books.
  */
@@ -552,6 +561,7 @@ const getBooksWithoutKeywords = async (): Promise<number[]> => {
 export {
   getAllBooks,
   getBookById,
+  deleteBookById,
   getBooksWithoutDetails,
   getAllBooksAndDetails,
   getBooksWithNoSubjectNorDescription,
