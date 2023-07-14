@@ -551,6 +551,7 @@ const getBooksWithoutKeywords = async (): Promise<number[]> => {
 
 export {
   getAllBooks,
+  getBookById,
   getBooksWithoutDetails,
   getAllBooksAndDetails,
   getBooksWithNoSubjectNorDescription,
