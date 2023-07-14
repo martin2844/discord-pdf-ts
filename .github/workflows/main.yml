@@ -35,9 +35,11 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
+          password: ${{ secrets.PASSWORD }}  
           script: |
-            cd your_project_directory
+            cd ${{secrets.DIR}}
             git pull
-            npm install --production
-            pm2 restart all
+            npm install 
+            npm run build
+            cp .env ./dist
+            pm2 restart dbot
