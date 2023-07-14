@@ -21,17 +21,17 @@ const uploadToImgur = async (image64) => {
       );
       return "";
     }
-    //First try IMGUR
     const response = await client.upload({ image: image64, type: "base64" });
-    //IF no IMGUR Available, try cloudinary, TODO REFACTOR THIS OUT
     if (response.status !== 200) {
       logger.error("@@@ Error Uploading to Imgur: " + response.status);
       return false;
     }
     return response.data.link;
   } catch (error) {
-    logger.error("@@@ Error Uploading to Imgur: ");
-    logger.error(JSON.stringify(error));
+    logger.error("@@@ Error Uploading to Imgur");
+    if (error.message && typeof error.message === "string") {
+      logger.error(error.message);
+    }
     return "";
   }
 };

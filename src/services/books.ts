@@ -60,7 +60,7 @@ const getBooksWithoutDetails = (): Promise<Book[]> => {
  */
 const getAllBooksAndDetails = (
   filters: any = {}
-): Promise<(Book & BookDetails)[]> => {
+): Promise<(FreshBook & BookDetails)[]> => {
   let subquery = db
     .select(
       db.raw("bk.book_id as book_id, GROUP_CONCAT(k.keyword) as keywords")
@@ -265,7 +265,10 @@ const fetchBooks = async (): Promise<{
   );
   if (booksMessages.length === 0) {
     logger.info("No Messages");
-    return;
+    return {
+      books: [],
+      booksMessages: [],
+    };
   }
   const books = await pruneBooks(mapBookMessagesToBooks(booksMessages));
   return {
@@ -282,6 +285,7 @@ const fetchBooks = async (): Promise<{
 const addSingleBookFromMessage = async (bookMessage: BookMessage) => {
   //1. check if uploader exists
   const uploaders = mapBookMessagesToMessageAuthors([bookMessage]);
+
   await fetchUploaders(uploaders);
   //2. save book
   await saveBooks(await pruneBooks(mapBookMessagesToBooks([bookMessage])));
