@@ -11,7 +11,7 @@ const config: Config.InitialOptions = {
     "@dtos/(.*)": "<rootDir>/src/dtos/$1",
     "@exceptions/(.*)": "<rootDir>/src/exceptions/$1",
     "@interfaces/(.*)": "<rootDir>/src/interfaces/$1",
-    "@middleware/(.*)": "<rootDir>/src/middlewares/$1",
+    "@middleware/(.*)": "<rootDir>/src/middleware/$1",
     "@models/(.*)": "<rootDir>/src/models/$1",
     "@ctypes/(.*)": "<rootDir>/src/types/$1",
     "@routes/(.*)": "<rootDir>/src/routes/$1",
