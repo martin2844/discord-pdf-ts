@@ -6,6 +6,8 @@ import {
   getAllBooksAndDetails,
   getBookById,
   deleteBookById,
+  deleteBooksWithoutDetails,
+  deleteOrphanBookDetails,
 } from "@services/books";
 
 router.get("/", async (req, res) => {
@@ -16,14 +18,20 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  if (!id) res.status(400).json({ error: "No id provided" });
   const books = await getBookById(parseInt(id));
   res.json(books);
 });
 
+router.delete("/undetailed", Auth, async (req, res) => {
+  const deleted = await deleteBooksWithoutDetails();
+  const deleteDetails = await deleteOrphanBookDetails();
+  res.status(200).json({ deleted, deleteDetails });
+});
+
 router.delete("/:id", Auth, async (req, res) => {
   const { id } = req.params;
-  if (!id) res.status(400).json({ error: "No id provided" });
+  if (!id || isNaN(parseInt(id)))
+    return res.status(404).json({ error: "Invalid or no id provided" });
   const del = await deleteBookById(parseInt(id));
   res.json(del);
 });

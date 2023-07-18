@@ -43,6 +43,73 @@ const deleteBookById = (id: number): Promise<number> => {
 };
 
 /**
+ * Deletes all books from the database that do not have an entry in the books_details table.
+ * @returns {Promise<number>} - A promise that resolves to the number of rows affected.
+ */
+const deleteBooksWithoutDetails = (): Promise<number> => {
+  return db("books")
+    .whereNotExists(
+      db
+        .select("*")
+        .from("book_details")
+        .whereRaw("books.id = book_details.book_id")
+    )
+    .del();
+};
+
+/**
+ * Deletes all book_details from the database that do not have an associated book in the books table, or whose associated book has been deleted.
+ * @returns {Promise<number>} - A promise that resolves to the number of rows affected.
+ */
+const deleteOrphanBookDetails = (): Promise<number> => {
+  return db("book_details")
+    .whereNotExists(
+      db.select("*").from("books").whereRaw("book_details.book_id = books.id")
+    )
+    .del();
+};
+
+/**
+ * Retrieves the number of books without details, the number of book_details without an associated book, and the number of books with details.
+ * @returns {Promise<{completeBooks: number, booksWithoutDetails: number, orphanBookDetails: number}>} - A promise that resolves to an object containing the counts.
+ */
+const getBookCount = async (): Promise<{
+  completeBooks: number | string;
+  booksWithoutDetails: number | string;
+  orphanBookDetails: number | string;
+}> => {
+  const booksWithoutDetails = await db("books")
+    .whereNotExists(
+      db
+        .select("*")
+        .from("book_details")
+        .whereRaw("books.id = book_details.book_id")
+    )
+    .count("id as count");
+
+  const orphanBookDetails = await db("book_details")
+    .whereNotExists(
+      db.select("*").from("books").whereRaw("book_details.book_id = books.id")
+    )
+    .count("book_id as count");
+
+  const completeBooks = await db("books")
+    .whereExists(
+      db
+        .select("*")
+        .from("book_details")
+        .whereRaw("books.id = book_details.book_id")
+    )
+    .count("id as count");
+
+  return {
+    completeBooks: completeBooks[0]?.count || 0,
+    booksWithoutDetails: booksWithoutDetails[0]?.count || 0,
+    orphanBookDetails: orphanBookDetails[0]?.count || 0,
+  };
+};
+
+/**
  * Retrieves all books from the database that are not blacklisted.
  * @returns {Promise<Book[]>} - A promise that resolves to an array of all non-blacklisted books.
  */
@@ -561,7 +628,10 @@ const getBooksWithoutKeywords = async (): Promise<number[]> => {
 export {
   getAllBooks,
   getBookById,
+  getBookCount,
   deleteBookById,
+  deleteBooksWithoutDetails,
+  deleteOrphanBookDetails,
   getBooksWithoutDetails,
   getAllBooksAndDetails,
   getBooksWithNoSubjectNorDescription,
