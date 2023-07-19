@@ -1,3 +1,8 @@
+import fs from 'fs';
+import stream from 'stream';
+import { promisify } from 'util';
+import path from 'path';
+
 import axios from "axios";
 import { fromBuffer } from "pdf2pic";
 import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
@@ -53,20 +58,49 @@ const checkMimeType = async (pdfBuffer: Buffer, bookId: number) => {
   }
 };
 
+
+
+const pipeline = promisify(stream.pipeline);
+
 const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
-  // Download the PDF file from the URL
-  logger.info("downloading pdf for book " + book.id);
+  // Ensure tmp directory exists
+  const tmpDir = path.join(__dirname, './tmp');
+  if (!fs.existsSync(tmpDir)){
+    fs.mkdirSync(tmpDir);
+  }
+  
+  // Path to store the downloaded PDF file
+  const tempFilePath = path.join(tmpDir, `${book.id}.pdf`);
+
+  // Download the PDF file from the URL in chunks and save it to a temporary file
+  logger.info("Downloading PDF for book " + book.id);
   const response = await axios.get(book.file, {
-    responseType: "arraybuffer",
+    responseType: 'stream',
   });
-  const pdfBuffer = response.data;
-  //Check mime type
+
+  // Save the stream to a file
+  await pipeline(
+    response.data,
+    fs.createWriteStream(tempFilePath)
+  );
+
+  // Read the downloaded PDF file from disk
+  const pdfBuffer = fs.readFileSync(tempFilePath);
+
+  // Check mime type
   await checkMimeType(pdfBuffer, book.id);
-  //Get cover image
+
+  // Get cover image
   const coverUrl = await storeAsImageAndGetCoverUrl(pdfBuffer);
+
   // Parse PDF data
   const pdf = await PDFParser(pdfBuffer);
+
   const { info } = pdf;
+
+  // Delete the temporary file after use
+  fs.unlinkSync(tempFilePath);
+
   return {
     book_id: book.id,
     author: info?.Author || "",
