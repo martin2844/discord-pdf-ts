@@ -6,6 +6,7 @@ import updateController from "./update";
 import authController from "./auth";
 import qController from "./queue";
 import dbController from "./db";
+import uploadersHandler from "./uploaders";
 import downloadController from "./download";
 import reportsController from "./reports";
 
@@ -41,6 +42,10 @@ const apiPaths = [
   {
     path: "/queue",
     handler: qController,
+  },
+  {
+    path: "/uploaders",
+    handler: uploadersHandler,
   },
   {
     path: "/download",

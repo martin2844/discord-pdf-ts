@@ -52,9 +52,36 @@ const saveUploaders = async (uploaders: Uploader[]) => {
   });
 };
 
+const updateUploaderAvatars = async () => {
+  // Get all uploaders from DB
+  const uploaders: Uploader[] = await db("uploaders").select();
+
+  // Fetch latest avatars for each uploader
+  const updatedUploaders = await fetchAvatars(uploaders);
+
+  await db.transaction(async (trx) => {
+    for (const updatedUploader of updatedUploaders) {
+      const originalUploader = uploaders.find(
+        (uploader) => uploader.uploader_id === updatedUploader.uploader_id
+      );
+
+      // If avatar has changed, update in DB
+      if (
+        originalUploader &&
+        originalUploader.avatar !== updatedUploader.avatar
+      ) {
+        await trx("uploaders")
+          .where("uploader_id", updatedUploader.uploader_id)
+          .update({ avatar: updatedUploader.avatar });
+      }
+    }
+  });
+};
+
 export {
   getUnexistingUploaders,
   saveUploaders,
+  updateUploaderAvatars,
   checkIfUploaderExists,
   fetchUploaders,
 };
