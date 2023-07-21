@@ -4,6 +4,9 @@ import {
   getAllBooksAndDetails,
   getBookById,
   deleteBookById,
+  deleteBooksWithoutDetails,
+  modifyBook,
+  deleteOrphanBookDetails,
 } from "@services/books";
 import router from "./books";
 
@@ -12,6 +15,9 @@ jest.mock("@services/books", () => ({
   getAllBooksAndDetails: jest.fn(),
   getBookById: jest.fn(),
   deleteBookById: jest.fn(),
+  modifyBook: jest.fn(),
+  deleteBooksWithoutDetails: jest.fn(),
+  deleteOrphanBookDetails: jest.fn(),
 }));
 
 jest.mock("@middleware/auth", () => (_1, _2, next) => next());
@@ -84,5 +90,62 @@ describe("DELETE /:id", () => {
 
     expect(response.status).toBe(200);
     expect(deleteBookById).toHaveBeenCalledWith(1);
+  });
+});
+
+describe("PATCH /:bookId", () => {
+  it("should update a book and return the number of updated records", async () => {
+    (
+      modifyBook as jest.MockedFunction<typeof modifyBook>
+    ).mockResolvedValueOnce(1);
+
+    const response = await request(app)
+      .patch("/1")
+      .send({ title: "New Title" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ success: true, updated: 1 });
+  });
+
+  it("should return an error when no records were found to update", async () => {
+    (
+      modifyBook as jest.MockedFunction<typeof modifyBook>
+    ).mockResolvedValueOnce(0);
+
+    const response = await request(app)
+      .patch("/1")
+      .send({ title: "New Title" });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: "No records were found to update" });
+  });
+
+  it("should return an error when an invalid bookId is provided", async () => {
+    const response = await request(app)
+      .patch("/invalidId")
+      .send({ title: "New Title" });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Invalid or no id provided" });
+  });
+});
+
+describe("DELETE /undetailed", () => {
+  it("should delete books without details and orphan book details", async () => {
+    (
+      deleteBooksWithoutDetails as jest.MockedFunction<
+        typeof deleteBooksWithoutDetails
+      >
+    ).mockResolvedValueOnce(3);
+    (
+      deleteOrphanBookDetails as jest.MockedFunction<
+        typeof deleteOrphanBookDetails
+      >
+    ).mockResolvedValueOnce(2);
+
+    const response = await request(app).delete("/undetailed");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ deleted: 3, deleteDetails: 2 });
   });
 });

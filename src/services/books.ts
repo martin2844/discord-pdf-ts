@@ -323,6 +323,62 @@ const blacklistBook = async (bookId: Number) => {
 };
 
 /**
+ * Modifies a book in the database.
+ * @param {number} bookId - The ID of the book to modify.
+ * @param {Partial<FreshBook>} updates - An object with the fields to update.
+ * @returns {Promise<number>} - A promise that resolves to the number of updated records.
+ */
+const modifyBook = async (
+  bookId: number,
+  updates: Partial<FreshBook & BookDetails>
+): Promise<number> => {
+  const validUpdates = ["uploader_id", "file", "date"];
+  const bookUpdates = {};
+  const bookDetailsUpdates = {};
+  const validBookDetailsUpdates = [
+    "title",
+    "author",
+    "subject",
+    "description",
+    "keywords",
+    "cover_url",
+  ];
+
+  validUpdates.forEach((update) => {
+    if (updates[update] !== undefined) {
+      bookUpdates[update] = updates[update];
+    }
+  });
+
+  validBookDetailsUpdates.forEach((update) => {
+    if (updates[update] !== undefined) {
+      bookDetailsUpdates[update] = updates[update];
+    }
+  });
+
+  let booksUpdateResult;
+
+  if (Object.keys(bookUpdates).length) {
+    booksUpdateResult = await db("books")
+      .where("id", bookId)
+      .update(bookUpdates);
+  }
+
+  const bookDetail = await db("book_details").where("book_id", bookId).first();
+  const bookDetailsId = bookDetail ? bookDetail.id : null;
+
+  let bookDetailsUpdateResult = 0;
+
+  if (bookDetailsId !== null && Object.keys(bookDetailsUpdates).length) {
+    bookDetailsUpdateResult = await db("book_details")
+      .where("id", bookDetailsId)
+      .update(bookDetailsUpdates);
+  }
+
+  return booksUpdateResult && bookDetailsUpdateResult;
+};
+
+/**
  * Fetches fresh books and their associated book messages.
  * @returns {Promise<{ books: FreshBook[], booksMessages: BookMessage[] }>} - A promise that resolves to an object containing the fetched books and their associated book messages.
  */
@@ -638,6 +694,7 @@ export {
   getBooksWithoutKeywords,
   addDownloadCountToBook,
   blacklistBook,
+  modifyBook,
   getDateFromLatestBook,
   refreshBooks,
   enqueueBooksWithoutDetails,

@@ -1,7 +1,7 @@
-import fs from 'fs';
-import stream from 'stream';
-import { promisify } from 'util';
-import path from 'path';
+import fs from "fs";
+import stream from "stream";
+import { promisify } from "util";
+import path from "path";
 
 import axios from "axios";
 import { fromBuffer } from "pdf2pic";
@@ -58,31 +58,26 @@ const checkMimeType = async (pdfBuffer: Buffer, bookId: number) => {
   }
 };
 
-
-
 const pipeline = promisify(stream.pipeline);
 
 const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
   // Ensure tmp directory exists
-  const tmpDir = path.join(__dirname, './tmp');
-  if (!fs.existsSync(tmpDir)){
+  const tmpDir = path.join(__dirname, "./tmp");
+  if (!fs.existsSync(tmpDir)) {
     fs.mkdirSync(tmpDir);
   }
-  
+
   // Path to store the downloaded PDF file
   const tempFilePath = path.join(tmpDir, `${book.id}.pdf`);
 
   // Download the PDF file from the URL in chunks and save it to a temporary file
   logger.info("Downloading PDF for book " + book.id);
   const response = await axios.get(book.file, {
-    responseType: 'stream',
+    responseType: "stream",
   });
 
   // Save the stream to a file
-  await pipeline(
-    response.data,
-    fs.createWriteStream(tempFilePath)
-  );
+  await pipeline(response.data, fs.createWriteStream(tempFilePath));
 
   // Read the downloaded PDF file from disk
   const pdfBuffer = fs.readFileSync(tempFilePath);

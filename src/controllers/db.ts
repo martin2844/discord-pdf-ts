@@ -20,7 +20,6 @@ router.get("/tables", Auth, async (_req, res) => {
 
     res.json({ tablesAndColumns });
   } catch (err) {
-    console.error(err);
     res.status(500).send("An error occurred while fetching tables and columns");
   }
 });
