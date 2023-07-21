@@ -78,9 +78,24 @@ const updateUploaderAvatars = async () => {
   });
 };
 
+const getAllUploaders = async () => {
+  return await db("uploaders").select();
+};
+
+const updateUploader = async (
+  uploader_id: string,
+  updateFields: Partial<Uploader>
+) => {
+  return await db("uploaders")
+    .where("uploader_id", uploader_id)
+    .update(updateFields);
+};
+
 export {
   getUnexistingUploaders,
+  getAllUploaders,
   saveUploaders,
+  updateUploader,
   updateUploaderAvatars,
   checkIfUploaderExists,
   fetchUploaders,
