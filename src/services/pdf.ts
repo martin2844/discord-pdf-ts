@@ -33,7 +33,9 @@ For rich people, you can run the following commands on your terminal.
 $ brew update
 $ brew install gs graphicsmagick
 */
-const storeAsImageAndGetCoverUrl = async (pdfBuffer: Buffer) => {
+const storeAsImageAndGetCoverUrl = async (
+  pdfBuffer: Buffer
+): Promise<string> => {
   const options = {
     density: 100, // output pixels per inch
     savename: "untitled", // output file name

@@ -11,7 +11,7 @@ cloudinary.config({
   api_secret: CLOUDINARY_SECRET,
 });
 
-async function cloudinaryUpload(base64Image: string) {
+async function cloudinaryUpload(base64Image: string): Promise<string> {
   base64Image = base64Image.replace(/\s/g, "");
   const completeImageData = "data:image/png;base64," + base64Image;
   try {

@@ -214,6 +214,56 @@ const getAllBooksAndDetails = (
 };
 
 /**
+ * Retrieves a single book with its details.
+ * @param {number} bookId - ID of the book to fetch.
+ * @returns {Promise<(Book & BookDetails) | null>} - A promise that resolves to a book with details or null.
+ */
+const getBookAndDetails = async (
+  bookId: number
+): Promise<(FreshBook & BookDetails) | null> => {
+  let subquery = db
+    .select(
+      db.raw("bk.book_id as book_id, GROUP_CONCAT(k.keyword) as keywords")
+    )
+    .from("book_keywords as bk")
+    .innerJoin("keywords as k", "bk.keyword_id", "k.id")
+    .groupBy("bk.book_id")
+    .as("keywords_subquery");
+
+  let query = db("books as b")
+    .where("b.id", bookId) // Filter by the provided bookId
+    .where("b.blacklisted", false)
+    .innerJoin("uploaders as u", "b.uploader_id", "u.uploader_id")
+    .innerJoin("book_details as bd", "b.id", "bd.book_id")
+    .leftJoin(
+      db.select("*").from(subquery).as("keywords_subquery2"),
+      "b.id",
+      "keywords_subquery2.book_id"
+    )
+    .orderBy("date", "desc")
+    .select(
+      "b.id as book_id",
+      "bd.id as book_details_id",
+      "b.uploader_id",
+      "b.file",
+      "b.downloads",
+      "b.date",
+      "u.name",
+      "u.avatar",
+      "u.source",
+      "bd.cover_image",
+      "bd.title",
+      "bd.author",
+      "bd.subject",
+      "bd.description",
+      "keywords_subquery2.keywords"
+    )
+    .first(); // Fetch only the first record that matches the given bookId
+
+  return query;
+};
+
+/**
  * Retrieves the date from the latest book.
  * @returns {Promise<number | null>} - A promise that resolves to the date (in milliseconds) of the latest book, or null if no books exist.
  */
@@ -692,6 +742,7 @@ export {
   getAllBooksAndDetails,
   getBooksWithNoSubjectNorDescription,
   getBooksWithoutKeywords,
+  getBookAndDetails,
   addDownloadCountToBook,
   blacklistBook,
   modifyBook,

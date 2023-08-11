@@ -4,7 +4,7 @@ import Auth from "@middleware/auth";
 
 import {
   getAllBooksAndDetails,
-  getBookById,
+  getBookAndDetails,
   modifyBook,
   deleteBookById,
   deleteBooksWithoutDetails,
@@ -19,7 +19,7 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  const books = await getBookById(parseInt(id));
+  const books = await getBookAndDetails(parseInt(id));
   res.json(books);
 });
 

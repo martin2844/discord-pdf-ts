@@ -9,7 +9,7 @@ const logger = Logger(module);
 const client = new ImgurClient({ clientId: IMGUR_CLIENT_ID }); // Set your imgur client id here
 
 /**
- * Uploads an image to Imgur or Cloudinary.
+ * Uploads an image to Imgur.
  * @param {string} image64 - The base64-encoded image to upload.
  * @returns {Promise<string>} - A promise that resolves to the URL of the uploaded image.
  */
