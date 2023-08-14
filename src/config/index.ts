@@ -15,4 +15,5 @@ export const {
   JWT_SECRET,
   AMPQ_URL,
   AMPQ_QUEUE_NAME,
+  SENTRY_DSN,
 } = process.env;

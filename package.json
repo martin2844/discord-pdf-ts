@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sentry/node": "^7.63.0",
     "@types/lodash": "^4.14.195",
     "amqplib": "^0.10.3",
     "axios": "^1.4.0",

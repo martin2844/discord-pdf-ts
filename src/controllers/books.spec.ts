@@ -2,7 +2,7 @@ import request from "supertest";
 import express from "express";
 import {
   getAllBooksAndDetails,
-  getBookById,
+  getBookAndDetails,
   deleteBookById,
   deleteBooksWithoutDetails,
   modifyBook,
@@ -13,7 +13,7 @@ import router from "./books";
 // Mock the specific module method
 jest.mock("@services/books", () => ({
   getAllBooksAndDetails: jest.fn(),
-  getBookById: jest.fn(),
+  getBookAndDetails: jest.fn(),
   deleteBookById: jest.fn(),
   modifyBook: jest.fn(),
   deleteBooksWithoutDetails: jest.fn(),
@@ -65,20 +65,20 @@ describe("GET /", () => {
   });
 });
 
-// describe("GET /:id", () => {
-//   it("should return a book by its ID", async () => {
-//     const mockBook = mockBooks[0];
-//     (
-//       getBookById as jest.MockedFunction<typeof getBookById>
-//     ).mockResolvedValueOnce(mockBook);
+describe("GET /:id", () => {
+  it("should return a book by its ID", async () => {
+    const mockBook = mockBooks[0];
+    (
+      getBookAndDetails as jest.MockedFunction<typeof getBookAndDetails>
+    ).mockResolvedValueOnce(mockBook);
 
-//     const response = await request(app).get("/1");
+    const response = await request(app).get("/1");
 
-//     expect(response.status).toBe(200);
-//     expect(response.body).toEqual(mockBook);
-//     expect(getBookById).toHaveBeenCalledWith(1);
-//   });
-// });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockBook);
+    expect(getBookAndDetails).toHaveBeenCalledWith(1);
+  });
+});
 
 describe("DELETE /:id", () => {
   it("should delete a book by its ID and return the deleted book", async () => {

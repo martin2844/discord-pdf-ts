@@ -1,6 +1,6 @@
 import express from "express";
 import { enqueue } from "@services/ampq";
-import { JobType } from "@/types/queue";
+import { JobType } from "@ctypes/queue";
 
 const router = express.Router();
 

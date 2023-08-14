@@ -1,12 +1,14 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import * as Sentry from "@sentry/node";
 
 import db from "@db";
 import controllers from "@controllers";
 import discord from "@services/discord";
 import { workers } from "@services/workers";
 import { connectQ } from "@services/ampq";
+import { sentryInit } from "@services/sentry";
 import Logger from "@utils/logger";
 import { PORT } from "@config";
 
@@ -20,7 +22,14 @@ const app = express();
 app.use(helmet());
 app.use(express.json());
 app.use(cors());
+
+sentryInit(Sentry, app);
+// Trace incoming requests
+app.use(Sentry.Handlers.requestHandler() as express.RequestHandler);
+app.use(Sentry.Handlers.tracingHandler());
 controllers.forEach((c) => app.use(c.path, c.handler));
+
+app.use(Sentry.Handlers.errorHandler() as express.ErrorRequestHandler);
 
 discord().then(() => {
   initServices++;
