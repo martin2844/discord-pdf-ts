@@ -29,6 +29,8 @@ jobs:
 
       - name: Test
         run: npm test
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Deploy
         uses: appleboy/ssh-action@master

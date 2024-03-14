@@ -3,9 +3,7 @@ import { OPENAI_KEY } from "@config";
 
 import { BookDetails } from "@ctypes/books";
 
-const openai = new OpenAI({
-  apiKey: OPENAI_KEY, // This is the default and can be omitted
-});
+const openai = new OpenAI({ apiKey: OPENAI_KEY });
 
 const getAIbookDescription = async (book: BookDetails) => {
   const aiResponse = await openai.completions.create({
