@@ -11,7 +11,7 @@ const openai = new OpenAIApi(configuration);
 
 const getAIbookDescription = async (book: BookDetails) => {
   const aiResponse = await openai.createCompletion({
-    model: "text-davinci-003",
+    model: "gpt-4-0125-preview",
     prompt: `Give me a 50 words description about the book ${book.title} by ${book.author} in spanish, do not translate the title nor the author if you include it in the response`,
     temperature: 1,
     max_tokens: 256,
@@ -24,7 +24,7 @@ const getAIbookDescription = async (book: BookDetails) => {
 
 const getAIKeywords = async (book: BookDetails) => {
   const aiResponse = await openai.createCompletion({
-    model: "text-davinci-003",
+    model: "gpt-4-0125-preview",
     prompt: `Give me 5 keywords about the book ${book.title} by ${book.author}, keywords examples are 'java', 'php', 'machine-learning', 'ai', 'architecture', 'competitive programming', 'web dev', keywords should be of a general nature, dont give me very niche results, reply in a javascript array format like this ['keyword1', 'keyword2', 'keyword3']`,
     temperature: 1,
     max_tokens: 256,
@@ -44,7 +44,7 @@ const getAIKeywords = async (book: BookDetails) => {
 
 const getAiSubject = async (book: BookDetails) => {
   const aiResponse = await openai.createCompletion({
-    model: "text-davinci-003",
+    model: "gpt-4-0125-preview",
     prompt: `Give me the main subject about the book ${book.title} by ${book.author}, should be the best word that describes what the book is about`,
     temperature: 1,
     max_tokens: 256,
