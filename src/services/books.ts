@@ -315,6 +315,7 @@ const mapBookMessagesToBooks = (bookMessages: BookMessage[]): FreshBook[] => {
       uploader_id: bookMessage.uploader_id,
       date: bookMessage.date,
       file: bookMessage.file,
+      message_id: bookMessage.message_id,
     };
   });
 };
@@ -345,6 +346,8 @@ const mapBookMessagesToMessageAuthors = (
  * @returns {Promise<FreshBook[]>} - A promise that resolves to an array of pruned books.
  */
 const pruneBooks = async (books: FreshBook[]) => {
+  //First filter books Array to remove files that are repeated in the array
+  books = uniqBy(books, (book) => book.file);
   //Check if books exist in DB by searching for file, if they do, remove them from the array
   const existingBooks = await db("books")
     .where("blacklisted", false)
@@ -464,13 +467,13 @@ const fetchBooks = async (): Promise<{
  * @param {BookMessage} bookMessage - The book message containing the book to be added.
  * @returns {Promise<void>} - A promise that resolves once the book is added and book details are fetched.
  */
-const addSingleBookFromMessage = async (bookMessage: BookMessage) => {
+const addBooksFromMessage = async (bookMessages: BookMessage[]) => {
   //1. check if uploader exists
-  const uploaders = mapBookMessagesToMessageAuthors([bookMessage]);
+  const uploaders = mapBookMessagesToMessageAuthors(bookMessages);
 
   await fetchUploaders(uploaders);
   //2. save book
-  await saveBooks(await pruneBooks(mapBookMessagesToBooks([bookMessage])));
+  await saveBooks(await pruneBooks(mapBookMessagesToBooks(bookMessages)));
   //4. fetch book details
   return enqueueBooksWithoutDetails();
 };
@@ -751,7 +754,7 @@ export {
   enqueueBooksWithoutDetails,
   sourceAndSaveBookDetails,
   addBooksFromGH,
-  addSingleBookFromMessage,
+  addBooksFromMessage,
   updateBookDescription,
   updateKeywords,
   updateBookSubject,

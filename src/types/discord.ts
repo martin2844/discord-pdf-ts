@@ -4,4 +4,5 @@ export type BookMessage = {
   file: string;
   author_id: string;
   author_tag: string;
+  message_id: string;
 };

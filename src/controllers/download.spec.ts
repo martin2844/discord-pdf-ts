@@ -5,6 +5,13 @@ import { addDownloadCountToBook } from "@services/books";
 
 jest.mock("@services/books", () => ({
   addDownloadCountToBook: jest.fn(() => Promise.resolve()),
+  getBookById: jest.fn(() =>
+    Promise.resolve({ message_id: "1", file: "file" })
+  ),
+}));
+
+jest.mock("@services/discord", () => ({
+  fetchDownloadLinkFromDiscord: jest.fn(() => Promise.resolve("link")),
 }));
 
 const app = express();
