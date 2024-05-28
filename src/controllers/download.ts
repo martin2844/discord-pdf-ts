@@ -1,5 +1,5 @@
 import { addDownloadCountToBook, getBookById } from "@services/books";
-import { fetchDownloadLinkFromDiscord } from "@/services/discord";
+import { fetchDownloadLinkFromDiscord } from "@services/discord";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { BOOK_CHANNEL_ID } from "@config";
