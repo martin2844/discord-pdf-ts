@@ -29,3 +29,16 @@ The api also provides some extra information which can be used to for the front 
        |-- 📁 utils
        |-- 📁 workers
 ```
+
+## Docker Compose
+
+Docker is needed to run the local AMPQ instance.
+This is where jobs are enqeued.
+
+`docker-compose up -d`
+
+Then at .env:
+
+```
+amqp://user:password@localhost:5672
+```

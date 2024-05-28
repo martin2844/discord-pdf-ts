@@ -464,13 +464,13 @@ const fetchBooks = async (): Promise<{
  * @param {BookMessage} bookMessage - The book message containing the book to be added.
  * @returns {Promise<void>} - A promise that resolves once the book is added and book details are fetched.
  */
-const addSingleBookFromMessage = async (bookMessage: BookMessage) => {
+const addBooksFromMessage = async (bookMessages: BookMessage[]) => {
   //1. check if uploader exists
-  const uploaders = mapBookMessagesToMessageAuthors([bookMessage]);
+  const uploaders = mapBookMessagesToMessageAuthors(bookMessages);
 
   await fetchUploaders(uploaders);
   //2. save book
-  await saveBooks(await pruneBooks(mapBookMessagesToBooks([bookMessage])));
+  await saveBooks(await pruneBooks(mapBookMessagesToBooks(bookMessages)));
   //4. fetch book details
   return enqueueBooksWithoutDetails();
 };
@@ -538,7 +538,7 @@ const refreshBooks = async () => {
     //Save books if there are
     await fetchUploaders(mapBookMessagesToMessageAuthors(booksMessages));
     //After saving enqueue book details jobs
-    await enqueueBooksWithoutDetails();
+    // await enqueueBooksWithoutDetails();
     return `Enqueued jobs for ${books.length} books`;
   }
   return "Up To date";
@@ -751,7 +751,7 @@ export {
   enqueueBooksWithoutDetails,
   sourceAndSaveBookDetails,
   addBooksFromGH,
-  addSingleBookFromMessage,
+  addBooksFromMessage,
   updateBookDescription,
   updateKeywords,
   updateBookSubject,

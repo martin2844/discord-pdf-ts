@@ -1,8 +1,8 @@
 import * as Discord from "discord.js";
 const client = new Discord.Client({ intents: [1, 512, 32768] });
 
-import { BOT_TOKEN, BOOK_CHANNEL_ID } from "@config";
-import { addSingleBookFromMessage } from "@services/books";
+import { BOT_TOKEN, BOOK_CHANNEL_ID, REPLY_ENABLED } from "@config";
+import { addBooksFromMessage } from "@services/books";
 import Logger from "@utils/logger";
 import { BookMessage } from "@ctypes/discord";
 import { Uploader } from "@ctypes/uploaders";
@@ -61,7 +61,10 @@ const fetchAllMessagesWithPdfs = async (
     }
 
     if (msg.attachments.size > 0) {
+      // attachments is a map, so there is no index per se
+      let index = 0;
       msg.attachments.forEach((attachment) => {
+        index++;
         if (attachment.name.endsWith(".pdf")) {
           messagesWithPdfs.push({
             uploader_id: msg.author.id,
@@ -71,6 +74,15 @@ const fetchAllMessagesWithPdfs = async (
             author_tag: msg.author.tag,
           });
           logger.info("Message with Pdf Found: " + msg.author.tag);
+        }
+        if (index > 1) {
+          // logger.info(
+          //   "Multiple attachments found in message: " +
+          //     msg.author.tag +
+          //     "\n URL: " +
+          //     attachment.url
+          // );
+          console.log(msg.attachments);
         }
       });
     }
@@ -83,39 +95,6 @@ const fetchAllMessagesWithPdfs = async (
     lastTimestamp,
     messagesWithPdfs
   );
-};
-
-/**
- * Fetches a PDF attachment from a single Discord message.
- * @param {Discord.Message} msg - The Discord message to fetch the PDF from.
- * @returns {Promise<BookMessage | null>} - A promise that resolves to a BookMessage object representing the fetched PDF, or null if no PDF is found.
- */
-const fetchPdfFromSingleMessage = async (
-  msg: Discord.Message
-): Promise<BookMessage | null> => {
-  // If the message has no attachments or does not contain a pdf, return null
-  if (
-    msg.attachments.size === 0 ||
-    !msg.attachments.some((attachment) => attachment.name.endsWith(".pdf"))
-  ) {
-    return null;
-  }
-
-  let pdfAttachment = msg.attachments.find((attachment) =>
-    attachment.name.endsWith(".pdf")
-  );
-
-  if (pdfAttachment) {
-    return {
-      uploader_id: msg.author.id,
-      date: msg.createdAt.toISOString(),
-      file: pdfAttachment.url,
-      author_id: msg.author.id,
-      author_tag: msg.author.tag,
-    };
-  }
-
-  return null;
 };
 
 /**
@@ -151,29 +130,46 @@ DiscordClient().then((c) =>
     if (message.content.toLowerCase() === "/health") {
       await message.reply("I'm alive!");
     }
+    console.log("Listening??");
 
     //Ignore messages without attachment
     if (message.attachments.size === 0) return;
 
+    let index = 0;
+    const messagesWithPdfs = [];
     message.attachments.forEach((attachment) => {
+      index++;
+      console.log("Attachment Number: " + index);
       if (attachment.name.endsWith(".pdf")) {
         // You found a PDF, do something with it!
         logger.info(
           `WS: Found a PDF in a message from ${message.author.tag}: ${attachment.url}`
         );
-        fetchPdfFromSingleMessage(message).then((book) => {
-          if (book) {
-            addSingleBookFromMessage(book).then(() => {
-              const url = new URL(book.file);
-              const filename = url.pathname.split("/").pop();
-              message.reply(
-                `Gracias **${book.author_tag}** por la contribucion, agregamos **${filename}** a la base de datos! \n https://libros.codigomate.com`
-              );
-            });
-          }
+        messagesWithPdfs.push({
+          uploader_id: message.author.id,
+          date: message.createdAt.toISOString(),
+          file: attachment.url,
+          author_id: message.author.id,
+          author_tag: message.author.tag,
         });
       }
     });
+    if (messagesWithPdfs.length > 0) {
+      addBooksFromMessage(messagesWithPdfs).then(() => {
+        logger.info("Books added from messages");
+      });
+      if (REPLY_ENABLED) {
+        if (messagesWithPdfs.length > 1) {
+          message.reply(
+            "Tremendo Titan Galatico! Gracias por la contribucion, estamos procesando los archivetes!"
+          );
+        } else {
+          message.reply(
+            "Gracias por la contribucion, estamos procesando el archivo!"
+          );
+        }
+      }
+    }
   })
 );
 
