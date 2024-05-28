@@ -9,8 +9,7 @@ on:
       - master
 
 jobs:
-  deploy:
-    if: github.event_name == 'push'
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +34,29 @@ jobs:
         run: npm test
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  deploy:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18.14.0"
+
+      - name: Install npm
+        run: npm install -g npm@7
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
 
       - name: Deploy
         uses: appleboy/ssh-action@master
@@ -50,30 +72,3 @@ jobs:
             npm run build
             cp .env ./dist
             pm2 restart dbot
-
-  test:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "18.14.0"
-
-      - name: Install npm
-        run: npm install -g npm@7
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-        env:
-          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
