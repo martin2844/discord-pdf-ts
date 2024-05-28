@@ -541,7 +541,7 @@ const refreshBooks = async () => {
     //Save books if there are
     await fetchUploaders(mapBookMessagesToMessageAuthors(booksMessages));
     //After saving enqueue book details jobs
-    // await enqueueBooksWithoutDetails();
+    await enqueueBooksWithoutDetails();
     return `Enqueued jobs for ${books.length} books`;
   }
   return "Up To date";
