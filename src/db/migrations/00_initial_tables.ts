@@ -10,6 +10,7 @@ export async function up(knex): Promise<any> {
       table.increments("id").primary();
       table.text("uploader_id").notNullable();
       table.text("file").notNullable().unique();
+      table.text("message_id");
       table.foreign("uploader_id").references("uploaders.uploader_id");
       table.timestamp("date").defaultTo(knex.fn.now());
     }),

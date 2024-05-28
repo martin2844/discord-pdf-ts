@@ -315,6 +315,7 @@ const mapBookMessagesToBooks = (bookMessages: BookMessage[]): FreshBook[] => {
       uploader_id: bookMessage.uploader_id,
       date: bookMessage.date,
       file: bookMessage.file,
+      message_id: bookMessage.message_id,
     };
   });
 };
@@ -345,6 +346,8 @@ const mapBookMessagesToMessageAuthors = (
  * @returns {Promise<FreshBook[]>} - A promise that resolves to an array of pruned books.
  */
 const pruneBooks = async (books: FreshBook[]) => {
+  //First filter books Array to remove files that are repeated in the array
+  books = uniqBy(books, (book) => book.file);
   //Check if books exist in DB by searching for file, if they do, remove them from the array
   const existingBooks = await db("books")
     .where("blacklisted", false)

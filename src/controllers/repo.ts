@@ -9,7 +9,11 @@ router.post("/", async (req, res) => {
   const { repo } = req.body;
   const pdfs = await getPdfsFromRepo(repo);
   const { user } = getUserAndRepoFromUrl(repo);
-  const books = pdfs.map((pdf) => ({ ...pdf, uploader_id: user }));
+  const books = pdfs.map((pdf) => ({
+    ...pdf,
+    uploader_id: user,
+    message_id: repo.split("/").pop(),
+  }));
   const status = await addBooksFromGH(books, user);
   res.json({ status });
 });

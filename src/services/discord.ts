@@ -69,20 +69,12 @@ const fetchAllMessagesWithPdfs = async (
           messagesWithPdfs.push({
             uploader_id: msg.author.id,
             date: msg.createdAt.toISOString(),
-            file: attachment.url,
+            file: attachment.name,
             author_id: msg.author.id,
             author_tag: msg.author.tag,
+            message_id: msg.id,
           });
-          logger.info("Message with Pdf Found: " + msg.author.tag);
-        }
-        if (index > 1) {
-          // logger.info(
-          //   "Multiple attachments found in message: " +
-          //     msg.author.tag +
-          //     "\n URL: " +
-          //     attachment.url
-          // );
-          console.log(msg.attachments);
+          logger.info("Message with Pdf(s) Found: " + msg.author.tag);
         }
       });
     }
@@ -116,6 +108,47 @@ const fetchAvatars = async (uploaders: Uploader[]) => {
     uploaders[index].avatar = user.displayAvatarURL();
   });
   return uploaders;
+};
+
+/**
+ * Fetches the download link of a file given the file name and message ID.
+ * @param {string} channelId - The ID of the channel.
+ * @param {string} messageId - The ID of the message.
+ * @param {string} fileName - The name of the file (attachment.name).
+ * @returns {Promise<string | null>} - A promise that resolves to the download link or null if not found.
+ */
+const fetchDownloadLinkFromDiscord = async (
+  channelId: string,
+  messageId: string,
+  fileName: string
+): Promise<string | null> => {
+  const client = await DiscordClient();
+
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !(channel instanceof Discord.TextChannel)) {
+      throw new Error(
+        `Channel with ID ${channelId} not found or is not a text channel.`
+      );
+    }
+
+    const message = await channel.messages.fetch(messageId);
+    if (!message) {
+      throw new Error(`Message with ID ${messageId} not found.`);
+    }
+
+    const attachment = message.attachments.find((att) => att.name === fileName);
+    if (!attachment) {
+      throw new Error(
+        `Attachment with name ${fileName} not found in message ${messageId}.`
+      );
+    }
+
+    return attachment.url;
+  } catch (error) {
+    console.error("Error fetching download link from Discord:", error);
+    return null;
+  }
 };
 
 // WEBSOCKET CODE BEGIN
@@ -173,4 +206,9 @@ DiscordClient().then((c) =>
   })
 );
 
-export { DiscordClient, fetchAllMessagesWithPdfs, fetchAvatars };
+export {
+  DiscordClient,
+  fetchAllMessagesWithPdfs,
+  fetchAvatars,
+  fetchDownloadLinkFromDiscord,
+};

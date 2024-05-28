@@ -6,6 +6,7 @@ export type FreshBook = {
   uploader_id: string;
   date: string;
   file: string;
+  message_id: string;
 };
 
 export type BookDetails = {
