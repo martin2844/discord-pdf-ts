@@ -13,6 +13,8 @@ import { cloudinaryUpload } from "@services/cloudinary";
 import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails } from "@ctypes/books";
+import { fetchDownloadLinkFromDiscord } from "./discord";
+import { BOOK_CHANNEL_ID } from "@/config";
 
 const logger = Logger(module);
 
@@ -74,7 +76,12 @@ const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
 
   // Download the PDF file from the URL in chunks and save it to a temporary file
   logger.info("Downloading PDF for book " + book.id);
-  const response = await axios.get(book.file, {
+  const fileUrl = await fetchDownloadLinkFromDiscord(
+    BOOK_CHANNEL_ID,
+    book.message_id,
+    book.file
+  );
+  const response = await axios.get(fileUrl, {
     responseType: "stream",
   });
 
