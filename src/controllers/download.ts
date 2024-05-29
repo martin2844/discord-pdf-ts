@@ -1,6 +1,8 @@
-import { addDownloadCountToBook } from "@services/books";
+import { addDownloadCountToBook, getBookById } from "@services/books";
+import { fetchDownloadLinkFromDiscord } from "@services/discord";
 import express from "express";
 import rateLimit from "express-rate-limit";
+import { BOOK_CHANNEL_ID } from "@config";
 
 const router = express.Router();
 
@@ -15,6 +17,12 @@ const limiter = rateLimit({
 
 router.post("/", limiter, async (req, res) => {
   const { bookId } = req.body;
+  const book = await getBookById(bookId);
+  const downloadLink = await fetchDownloadLinkFromDiscord(
+    BOOK_CHANNEL_ID,
+    book.message_id,
+    book.file
+  );
   const ip = req.ip;
   const key = `${ip}-${bookId}`;
   // Check if the user with this IP has already downloaded this book
@@ -27,7 +35,7 @@ router.post("/", limiter, async (req, res) => {
   if (downloadRecords.size > 5000) {
     downloadRecords.clear();
   }
-  res.status(200).send("OK");
+  res.status(200).send(downloadLink);
 });
 
 export default router;

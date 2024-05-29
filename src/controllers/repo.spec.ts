@@ -24,8 +24,8 @@ describe("POST /", () => {
     // Setup mock data and function returns
     const mockRepo = "https://github.com/user/repo";
     const mockPdfs = [
-      { date: "2023-08-14", file: "url1" },
-      { date: "2023-08-15", file: "url2" },
+      { date: "2023-08-14", file: "url1", message_id: "repo" },
+      { date: "2023-08-15", file: "url2", message_id: "repo" },
     ];
     const mockUserAndRepo = { user: "user", repo: "repo" };
     const mockBooks = mockPdfs.map((pdf) => ({ ...pdf, uploader_id: "user" }));

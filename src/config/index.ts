@@ -16,4 +16,5 @@ export const {
   AMPQ_URL,
   AMPQ_QUEUE_NAME,
   SENTRY_DSN,
+  REPLY_ENABLED,
 } = process.env;
