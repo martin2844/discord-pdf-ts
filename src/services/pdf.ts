@@ -14,7 +14,7 @@ import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails } from "@ctypes/books";
 import { fetchDownloadLinkFromDiscord } from "./discord";
-import { BOOK_CHANNEL_ID } from "@/config";
+import { BOOK_CHANNEL_ID } from "@config";
 
 const logger = Logger(module);
 
