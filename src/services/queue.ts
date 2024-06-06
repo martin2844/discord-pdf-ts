@@ -16,3 +16,8 @@ export async function enqueueAiKeywordsJob(book_id: number) {
 export async function enqueueAiDescriptionJob(book_id: number) {
   return enqueue({ id: book_id, type: JobType.AI_DESCRIPTION });
 }
+
+//Includes title, author, description and subject
+export async function enqueueV2AiDetails(book_id: number) {
+  return enqueue({ id: book_id, type: JobType.AI_DETAILS });
+}

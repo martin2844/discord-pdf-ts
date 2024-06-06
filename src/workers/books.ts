@@ -8,8 +8,8 @@ import {
   updateKeywords,
 } from "@/services/books";
 
-const sourceDetails = async (bookId: number) => {
-  await sourceAndSaveBookDetails(bookId);
+const sourceDetails = async (bookId: number, aiDetails = false) => {
+  await sourceAndSaveBookDetails(bookId, aiDetails);
 };
 
 const updateDescriptionAndSubject = async (bookId: number) => {
@@ -21,6 +21,9 @@ const processJob = async (job: Job) => {
   switch (job.type) {
     case JobType.DETAILS:
       await sourceDetails(job.id);
+      break;
+    case JobType.AI_DETAILS:
+      await sourceDetails(job.id, true);
       break;
     case JobType.AI_DESCRIPTION:
       await updateDescriptionAndSubject(job.id);

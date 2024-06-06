@@ -13,6 +13,7 @@ import { cloudinaryUpload } from "@services/cloudinary";
 import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
 import { Book, BookDetails } from "@ctypes/books";
+import { getAIbookDetailsFromText } from "./openai";
 
 const logger = Logger(module);
 
@@ -62,7 +63,11 @@ const checkMimeType = async (pdfBuffer: Buffer, bookId: number) => {
 
 const pipeline = promisify(stream.pipeline);
 
-const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
+const getBookDetailsFromPdfUrl = async (
+  book: Book,
+  aiPdf = false,
+  manualEndpoint = false
+): Promise<BookDetails> => {
   // Ensure tmp directory exists
   const tmpDir = path.join(__dirname, "./tmp");
   if (!fs.existsSync(tmpDir)) {
@@ -74,11 +79,18 @@ const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
 
   // Download the PDF file from the URL in chunks and save it to a temporary file
   logger.info("Downloading PDF for book " + book.id);
-  const fileReq = await axios.post(
-    "https://api.libros.codigomate.com/api/download",
-    { bookId: book.id }
-  );
-  const response = await axios.get(fileReq.data, {
+  let URL;
+  if (!manualEndpoint) {
+    const fileReq = await axios.post(
+      "https://api.libros.codigomate.com/api/download",
+      { bookId: book.id }
+    );
+    URL = fileReq.data;
+  } else {
+    URL = book.file;
+  }
+
+  const response = await axios.get(URL, {
     responseType: "stream",
   });
 
@@ -98,16 +110,39 @@ const getBookDetailsFromPdfUrl = async (book: Book): Promise<BookDetails> => {
   const pdf = await PDFParser(pdfBuffer);
 
   const { info } = pdf;
+  // if AI is enabled, send the PDF to the AI endpoint
+  const aiDetails = {
+    title: "",
+    author: "",
+    description: "",
+    subject: "",
+  };
+  if (aiPdf) {
+    // Send the PDF to the AI endpoint
+    // extract first 1000 words from the book
+    const extract = pdf.text.slice(0, 1000);
+    const details = await getAIbookDetailsFromText(extract);
+    try {
+      const parsedDetails = JSON.parse(details);
+      aiDetails.title = parsedDetails.title;
+      aiDetails.author = parsedDetails.author;
+      aiDetails.description = parsedDetails.description;
+      aiDetails.subject = parsedDetails.subject;
+    } catch (error) {
+      console.log("PARSING ERROR FROM AI :(");
+      console.log(error);
+    }
+  }
 
   // Delete the temporary file after use
   fs.unlinkSync(tempFilePath);
 
   return {
     book_id: book.id,
-    author: info?.Author || "",
-    title: info?.Title || "",
-    subject: "",
-    description: "",
+    author: aiDetails.author || info?.Author || "",
+    title: aiDetails.title || info?.Title || "",
+    subject: aiDetails.subject || "",
+    description: aiDetails.description || "",
     cover_image: coverUrl || "",
   };
 };

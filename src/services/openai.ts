@@ -23,6 +23,24 @@ const getAIbookDescription = async (book: BookDetails) => {
   return aiResponse.choices[0].message.content;
 };
 
+const getAIbookDetailsFromText = async (text: string) => {
+  const aiResponse = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: "You are a helpful assistant.",
+      },
+      {
+        role: "user",
+        content: `I will send you a text about a book. Please provide me with the title, author of the book and a brief description of the book in Spanish, also give me the subject of the book in english for example: "Data Science" or "Javascript", this needs to be in English. The description should be in Spanish. The title and author should not be translated. The description should be 50-80 words long. Return the reply in JSON format like so "{ "title": "title", "author": "author", "description": "description", subject: "subject" }". If you can't find the title or author, return an empty string. If you can't find the description, return an empty string. Never deviate from returning a JSON, do not add any markdown blocks, just a string, do not add any other words or characters. This is the text: ${text}`,
+      },
+    ],
+    max_tokens: 512,
+  });
+  return aiResponse.choices[0].message.content;
+};
+
 const getAIKeywords = async (book: BookDetails) => {
   const aiResponse = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -66,4 +84,9 @@ const getAiSubject = async (book: BookDetails) => {
   return aiResponse.choices[0].message.content;
 };
 
-export { getAIbookDescription, getAIKeywords, getAiSubject };
+export {
+  getAIbookDescription,
+  getAIKeywords,
+  getAiSubject,
+  getAIbookDetailsFromText,
+};

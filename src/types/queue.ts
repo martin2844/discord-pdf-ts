@@ -11,4 +11,5 @@ export enum JobType {
   UPLOADER = 4,
   AI_KEYWORDS = 5,
   AI_DESCRIPTION = 6,
+  AI_DETAILS = 7,
 }
