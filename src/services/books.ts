@@ -292,9 +292,11 @@ const saveBooks = async (books: FreshBook[]) => {
  * @returns {Promise<void>} - A promise that resolves once the book details are saved.
  */
 const saveBookDetails = async (booksDetails: BookDetails[]): Promise<void> => {
-  return db("book_details").insert(booksDetails);
+  const queries = booksDetails.map((bookDetail) =>
+    db("book_details").insert(bookDetail).onConflict("book_id").merge()
+  );
+  await Promise.all(queries);
 };
-
 /**
  * Updates a books download count by 1
  * @param {number} bookId - The ID of the book to update.
