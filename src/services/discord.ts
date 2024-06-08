@@ -164,7 +164,7 @@ DiscordClient().then((c) =>
       await message.reply("I'm alive!");
     }
     console.log("Listening??");
-
+    console.log(message.author);
     //Ignore messages without attachment
     if (message.attachments.size === 0) return;
 
@@ -191,16 +191,18 @@ DiscordClient().then((c) =>
       addBooksFromMessage(messagesWithPdfs).then(() => {
         logger.info("Books added from messages");
       });
+      const WEB_URL = "https://libros.codigomate.com";
       if (REPLY_ENABLED) {
         if (messagesWithPdfs.length > 1) {
           message.reply(
-            "Tremendo Titan Galatico! Gracias por la contribucion, estamos procesando los archivetes!"
+            `Tremendo POR ACA hay un User: ${message.author.username} que es tremendo Titan Galatico! Gracias por la contribucion, estamos procesando los archivetes! \n Mira tu contribucion en ${WEB_URL}`
           );
         } else {
           message.reply(
-            "Gracias por la contribucion, estamos procesando el archivo!"
+            `Gracias por ${message.author.username} la contribucion, estamos procesando el archivo! \n Mira tu contribucion en ${WEB_URL}`
           );
         }
+        message.react("👍");
       }
     }
   })
