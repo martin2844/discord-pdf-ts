@@ -292,11 +292,23 @@ const saveBooks = async (books: FreshBook[]) => {
  * @returns {Promise<void>} - A promise that resolves once the book details are saved.
  */
 const saveBookDetails = async (booksDetails: BookDetails[]): Promise<void> => {
-  const queries = booksDetails.map((bookDetail) =>
-    db("book_details").insert(bookDetail).onConflict("book_id").merge()
-  );
-  await Promise.all(queries);
+  for (let bookDetails of booksDetails) {
+    // Check if book details already exist
+    const existingBookDetails = await db("book_details")
+      .where("book_id", bookDetails.book_id)
+      .select("*");
+    if (existingBookDetails.length) {
+      // replace existing book details with new ones
+      await db("book_details")
+        .where("book_id", bookDetails.book_id)
+        .update(bookDetails);
+    } else {
+      // insert new book details
+      await db("book_details").insert(bookDetails);
+    }
+  }
 };
+
 /**
  * Updates a books download count by 1
  * @param {number} bookId - The ID of the book to update.
