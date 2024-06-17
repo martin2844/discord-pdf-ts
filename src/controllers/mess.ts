@@ -26,7 +26,6 @@ router.get("/", async (req, res) => {
         file: attachment,
         message_id: "994248489787723819",
       },
-      true,
       true
     );
     // We got the details of the PDF - now what? - We could check a bunch of things.

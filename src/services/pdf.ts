@@ -8,7 +8,6 @@ import { fromBuffer } from "pdf2pic";
 import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
 import PDFParser from "pdf-parse";
 
-import { uploadToImgur } from "@services/imgur";
 import { cloudinaryUpload } from "@services/cloudinary";
 import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
@@ -47,8 +46,7 @@ const storeAsImageAndGetCoverUrl = async (
   };
   const convert = fromBuffer(pdfBuffer, options);
   const picture: ToBase64Response = await convert(1, true);
-  let coverUrl = await uploadToImgur(picture.base64);
-  if (!coverUrl) coverUrl = await cloudinaryUpload(picture.base64);
+  const coverUrl = await cloudinaryUpload(picture.base64);
   return coverUrl;
 };
 
@@ -65,7 +63,6 @@ const pipeline = promisify(stream.pipeline);
 
 const getBookDetailsFromPdfUrl = async (
   book: Book,
-  aiPdf = false,
   manualEndpoint = false
 ): Promise<BookDetails> => {
   // Ensure tmp directory exists
@@ -104,7 +101,10 @@ const getBookDetailsFromPdfUrl = async (
   await checkMimeType(pdfBuffer, book.id);
 
   // Get cover image
-  const coverUrl = await storeAsImageAndGetCoverUrl(pdfBuffer);
+  let coverUrl = "";
+  if (!process.env.NO_IMAGE) {
+    coverUrl = await storeAsImageAndGetCoverUrl(pdfBuffer);
+  }
 
   // Parse PDF data
   const pdf = await PDFParser(pdfBuffer);
@@ -117,33 +117,44 @@ const getBookDetailsFromPdfUrl = async (
     description: "",
     subject: "",
   };
-  if (aiPdf) {
-    // Send the PDF to the AI endpoint
-    // extract first 1000 words from the book
-    const extract = pdf.text.slice(0, 1000);
-    const details = await getAIbookDetailsFromText(extract);
-    try {
-      const parsedDetails = JSON.parse(details);
+
+  // extract first 1000 words from the book
+  const extract = pdf.text.slice(0, 1500);
+  const details = await getAIbookDetailsFromText(extract);
+  try {
+    const parsedDetails = JSON.parse(details);
+    if (typeof parsedDetails === "string") {
+      //parse again?
+      console.log("Parsing again");
+      const re = JSON.parse(parsedDetails);
+      console.log(re);
+      if (typeof re === "string") {
+        console.log("Re Parsing failed");
+      }
+      aiDetails.title = re.title;
+      aiDetails.author = re.author;
+      aiDetails.description = re.description;
+      aiDetails.subject = re.subject;
+    } else {
       aiDetails.title = parsedDetails.title;
       aiDetails.author = parsedDetails.author;
       aiDetails.description = parsedDetails.description;
       aiDetails.subject = parsedDetails.subject;
-    } catch (error) {
-      console.log("PARSING ERROR FROM AI :(");
-      console.log(error);
     }
+  } catch (error) {
+    console.log("----> PARSING ERROR FROM AI :(");
+    console.log(error);
   }
 
   // Delete the temporary file after use
   fs.unlinkSync(tempFilePath);
-
   return {
     book_id: book.id,
     author: aiDetails.author || info?.Author || "",
     title: aiDetails.title || info?.Title || "",
     subject: aiDetails.subject || "",
     description: aiDetails.description || "",
-    cover_image: coverUrl || "",
+    cover_image: coverUrl,
   };
 };
 

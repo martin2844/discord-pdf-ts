@@ -498,13 +498,25 @@ const addBooksFromMessage = async (bookMessages: BookMessage[]) => {
  * @returns {Promise<BookDetails>} - A promise that resolves to the saved book details.
  * @throws {Error} - If the book is not found or an error occurs during the process.
  */
-const sourceAndSaveBookDetails = async (bookId: number, aiDetails = false) => {
+const sourceAndSaveBookDetails = async (bookId: number) => {
   const book = await getBookById(bookId);
   if (!book) {
     throw new Error("Book not found");
   }
   try {
-    const details = await getBookDetailsFromPdfUrl(book, aiDetails);
+    const details = await getBookDetailsFromPdfUrl(book);
+    if (
+      !details.description ||
+      !details.title ||
+      !details.author ||
+      !details.subject
+    ) {
+      console.log(details);
+      logger.error(
+        `Book Details Missing Title, Author or Subject for book id ${bookId}`
+      );
+      return;
+    }
     await saveBookDetails([details]);
     return details;
   } catch (error) {

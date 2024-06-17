@@ -22,6 +22,14 @@ async function connectQ() {
 }
 
 async function enqueue(job: Job) {
+  if (!QUEUE) {
+    // wait next tick
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (!QUEUE) {
+      console.log("Queue not connected");
+      return;
+    }
+  }
   QUEUE.sendToQueue(AMPQ_QUEUE_NAME, Buffer.from(JSON.stringify(job)));
   logger.info(`Job sent successfully ${job.id}`);
 }

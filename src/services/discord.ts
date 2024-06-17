@@ -163,13 +163,25 @@ DiscordClient().then((c) =>
     if (message.content.toLowerCase() === "/health") {
       await message.reply("I'm alive!");
     }
-    console.log("Listening??");
-    console.log(message.author);
+
+    if (message.content.toLocaleLowerCase() === "/ping") {
+      await message.reply("Pong!");
+    }
+
+    if (message.content.toLocaleLowerCase() === "/help") {
+      await message.reply(
+        "Hola! Soy el bot de libros de CodigoMate. Puedes subir libros en formato PDF y los procesaremos para que esten disponibles en la web. Solo sube el archivo y nosotros nos encargamos del resto. Gracias por tu contribucion!"
+      );
+    }
+
+    if (message.content.toLocaleLowerCase() === "/stats") {
+      await message.reply("TODO");
+    }
     //Ignore messages without attachment
     if (message.attachments.size === 0) return;
 
     let index = 0;
-    const messagesWithPdfs = [];
+    const messagesWithPdfs: BookMessage[] = [];
     message.attachments.forEach((attachment) => {
       index++;
       console.log("Attachment Number: " + index);
@@ -184,6 +196,7 @@ DiscordClient().then((c) =>
           file: attachment.url,
           author_id: message.author.id,
           author_tag: message.author.tag,
+          message_id: message.id,
         });
       }
     });
