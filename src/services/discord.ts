@@ -193,7 +193,7 @@ DiscordClient().then((c) =>
         messagesWithPdfs.push({
           uploader_id: message.author.id,
           date: message.createdAt.toISOString(),
-          file: attachment.url,
+          file: attachment.name,
           author_id: message.author.id,
           author_tag: message.author.tag,
           message_id: message.id,
