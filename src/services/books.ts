@@ -233,6 +233,9 @@ const getBookAndDetails = async (
   let query = db("books as b")
     .where("b.id", bookId) // Filter by the provided bookId
     .where("b.blacklisted", false)
+    .where("bd.author", "<>", "")
+    .where("bd.title", "<>", "")
+    .where("bd.subject", "<>", "")
     .innerJoin("uploaders as u", "b.uploader_id", "u.uploader_id")
     .innerJoin("book_details as bd", "b.id", "bd.book_id")
     .leftJoin(

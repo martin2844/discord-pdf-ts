@@ -182,6 +182,7 @@ DiscordClient().then((c) =>
 
     let index = 0;
     const messagesWithPdfs: BookMessage[] = [];
+    //TODO CHECK WHY THIS BRINGS MORE THAN ONE MESSAGE ----
     message.attachments.forEach((attachment) => {
       index++;
       console.log("Attachment Number: " + index);
