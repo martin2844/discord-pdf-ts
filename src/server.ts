@@ -1,5 +1,6 @@
 import express from "express";
 import helmet from "helmet";
+import crypto from "crypto";
 import cors from "cors";
 import * as Sentry from "@sentry/node";
 import path from "path";
@@ -77,7 +78,8 @@ app.get('/', async (req, res) => {
       bookCount: bookCount.completeBooks,
       books,
       status,
-      keywords
+      keywords,
+      nonce: crypto.randomBytes(16).toString('hex')
     });
   } catch (error) {
     logger.error('Error rendering home page: ' + error.message);
