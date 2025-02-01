@@ -15,20 +15,24 @@ const limiter = rateLimit({
   message: "Too many download requests from this IP, please try again later.",
 });
 
-router.post("/", limiter, async (req, res) => {
-  const { bookId } = req.body;
-  const book = await getBookById(bookId);
+router.get("/:id", limiter, async (req, res) => {
+  const { id } = req.params;
+  const book = await getBookById(parseInt(id));
   const downloadLink = await fetchDownloadLinkFromDiscord(
     BOOK_CHANNEL_ID,
     book.message_id,
     book.file
   );
   const ip = req.ip;
-  const key = `${ip}-${bookId}`;
+  const key = `${ip}-${id}`;
+  if (ip === "::1") {
+    res.status(200).send(downloadLink);
+    return;
+  }
   // Check if the user with this IP has already downloaded this book
   if (!downloadRecords.has(key)) {
     // If not, increment the download count and add the IP-bookId to the records
-    await addDownloadCountToBook(bookId);
+    await addDownloadCountToBook(parseInt(id));
     downloadRecords.set(key, true);
   }
   // Check if the in-memory store is too large, and if so, clear it

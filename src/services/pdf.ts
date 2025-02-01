@@ -8,9 +8,9 @@ import { fromBuffer } from "pdf2pic";
 import { ToBase64Response } from "pdf2pic/dist/types/toBase64Response";
 import PDFParser from "pdf-parse";
 
-import { cloudinaryUpload } from "@services/cloudinary";
 import { PdfError } from "@utils/errors";
 import Logger from "@utils/logger";
+import { uploadBase64Image } from "@services/mateupload";
 import { Book, BookDetails } from "@ctypes/books";
 import { getAIbookDetailsFromText } from "./openai";
 
@@ -37,17 +37,49 @@ const storeAsImageAndGetCoverUrl = async (
   pdfBuffer: Buffer
 ): Promise<string> => {
   const options = {
-    density: 100, // output pixels per inch
-    savename: "untitled", // output file name
-    savedir: "./images", // output file location
-    format: "png", // output file format
-    width: 600, // output width
-    height: 900, // output height
+    density: 300,  // Increased for better quality
+    savename: "untitled",
+    savedir: "./images",
+    format: "png",
+    width: 600,
+    height: 900,
+    preserveAspectRatio: true,
+    quality: 100,
+    compression: "none",
+    page: 1,
+    imageType: "png"
   };
-  const convert = fromBuffer(pdfBuffer, options);
-  const picture: ToBase64Response = await convert(1, true);
-  const coverUrl = await cloudinaryUpload(picture.base64);
-  return coverUrl;
+
+  try {
+    // Ensure output directory exists
+    if (!fs.existsSync(options.savedir)) {
+      fs.mkdirSync(options.savedir, { recursive: true });
+    }
+
+    const convert = fromBuffer(pdfBuffer, options);
+    const picture: ToBase64Response = await convert(1, true);
+
+    // Add debug logging
+    logger.info("PDF conversion complete");
+    logger.info(`Base64 length: ${picture?.base64?.length || 0}`);
+
+    if (!picture?.base64) {
+      throw new Error("PDF conversion failed - no base64 data returned");
+    }
+
+    logger.info(`Base64 prefix: ${picture.base64.substring(0, 50)}...`);
+
+    if (!picture.base64.startsWith('data:image/png;base64,')) {
+      logger.warn("Base64 data missing proper PNG prefix");
+      picture.base64 = `data:image/png;base64,${picture.base64}`;
+    }
+
+    const coverUrl = await uploadBase64Image(picture.base64);
+    return coverUrl;
+  } catch (error) {
+    logger.error("Error converting PDF to image:", error);
+    throw new PdfError(`Failed to convert PDF to image: ${error.message}`, null);
+  }
 };
 
 //TODO Need to refactor, this is doubling the parsing.
@@ -63,7 +95,6 @@ const pipeline = promisify(stream.pipeline);
 
 const getBookDetailsFromPdfUrl = async (
   book: Book,
-  manualEndpoint = false
 ): Promise<BookDetails> => {
   // Ensure tmp directory exists
   const tmpDir = path.join(__dirname, "./tmp");
@@ -76,23 +107,26 @@ const getBookDetailsFromPdfUrl = async (
 
   // Download the PDF file from the URL in chunks and save it to a temporary file
   logger.info("Downloading PDF for book " + book.id);
-  let URL;
-  if (!manualEndpoint) {
-    const fileReq = await axios.post(
-      "https://api.libros.codigomate.com/api/download",
-      { bookId: book.id }
-    );
-    URL = fileReq.data;
-  } else {
-    URL = book.file;
-  }
-
-  const response = await axios.get(URL, {
+  const URL = await axios.get("http://localhost:4000/api/books/" + book.id + "/download");
+  logger.info("Downloading PDF for book " + book.id + " from " + URL.data);
+  const response = await axios.get(URL.data, {
     responseType: "stream",
   });
+  const writer = fs.createWriteStream(tempFilePath);
 
-  // Save the stream to a file
-  await pipeline(response.data, fs.createWriteStream(tempFilePath));
+  try {
+    // Use pipeline with proper type assertions
+    await pipeline(
+      response.data,
+      writer as unknown as NodeJS.WritableStream
+    );
+  } catch (error) {
+    writer.destroy();
+    fs.unlinkSync(tempFilePath);
+    throw error;
+  } finally {
+    writer.end();
+  }
 
   // Read the downloaded PDF file from disk
   const pdfBuffer = fs.readFileSync(tempFilePath);

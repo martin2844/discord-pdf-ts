@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libros CodigoMate - Devsarg discord</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .status-info p {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .book-card {
+            background-color: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .book-cover {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+
+        .no-cover {
+            width: 100%;
+            height: 250px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .book-info {
+            padding: 20px;
+        }
+
+        .book-info h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .author {
+            color: #34495e;
+            font-style: italic;
+            margin: 5px 0;
+        }
+
+        .subject {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+
+        .downloads,
+        .date {
+            font-size: 0.8em;
+            color: #95a5a6;
+            margin: 5px 0;
+        }
+
+        .uploader-info {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .uploader-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .uploader-name {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .keywords {
+            margin-top: 10px;
+        }
+
+        .keyword {
+            display: inline-block;
+            background-color: #e0e0e0;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .keyword:hover {
+            background-color: #d0d0d0;
+        }
+
+        .active-filter {
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        #active-filters {
+            margin-bottom: 20px;
+        }
+
+        .filter-tag {
+            display: inline-block;
+            background-color: #3498db;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .filter-tag::after {
+            content: '×';
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
+        .all-keywords {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+        }
+
+        .all-keywords h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .all-keywords .keyword {
+            display: inline-block;
+            background-color: #e0e0e0;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .all-keywords .keyword:hover {
+            background-color: #d0d0d0;
+        }
+
+        .all-keywords .keyword.active-filter {
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        .keywords-section {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .keywords-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .keywords-header h2 {
+            font-size: 1.1em;
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .keywords-toggle {
+            border: none;
+            background: none;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .keywords-content {
+            max-height: 70px;
+            /* Show about 2-3 lines by default */
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .keywords-content.expanded {
+            max-height: 1000px;
+            /* Large enough to show all content */
+        }
+
+        .keyword {
+            display: inline-block;
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            margin: 0 8px 8px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .keyword:hover {
+            background-color: #dee2e6;
+        }
+
+        .keyword.active-filter {
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        #active-filters {
+            margin: 15px 0;
+            min-height: 40px;
+        }
+
+        .filter-tag {
+            background-color: #3498db;
+            color: #fff;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 0 8px 8px 0;
+            display: inline-block;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .filter-tag::after {
+            content: '×';
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        .keyword {
+            background-color: rgba(152, 184, 128, 0.1);
+            /* #98b880 with opacity */
+            color: #4a5a3f;
+            /* Darker shade of #98b880 for text */
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            margin: 0 8px 8px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .keyword:hover {
+            background-color: rgba(152, 184, 128, 0.2);
+        }
+
+        .keyword.active-filter {
+            background-color: #98b880;
+            color: #fff;
+        }
+
+        .filter-tag {
+            background-color: #98b880;
+            color: #fff;
+        }
+
+        .keywords-header h2 {
+            color: #4a5a3f;
+        }
+
+        .keywords-toggle {
+            color: #98b880;
+        }
+
+        /* New download button styles */
+        .download-button {
+            background-color: #98b880;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            margin-top: 15px;
+        }
+
+        .download-button:hover {
+            background-color: #86a370;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .download-button:active {
+            transform: translateY(0);
+        }
+
+        .download-button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Update other accent colors */
+        .status-info {
+            background-color: rgba(152, 184, 128, 0.1);
+        }
+
+        .keywords-section {
+            background-color: rgba(152, 184, 128, 0.05);
+        }
+
+        .uploader-info {
+            border-top: 1px solid rgba(152, 184, 128, 0.2);
+        }
+
+        .site-footer {
+            background-color: #f8f9fa;
+            padding: 40px 0 20px;
+            margin-top: 60px;
+            border-top: 1px solid rgba(152, 184, 128, 0.2);
+        }
+
+        .footer-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+        }
+
+        .footer-section h3 {
+            color: #4a5a3f;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 8px;
+        }
+
+        .footer-section ul li a {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-section ul li a:hover {
+            color: #98b880;
+        }
+
+        .footer-bottom {
+            max-width: 1600px;
+            margin: 30px auto 0;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid rgba(152, 184, 128, 0.1);
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 style="margin-top: 0">Libros by Devsarg discord</h1>
+
+        <div class="status-info">
+            <p>Total de Libros: <%= bookCount %>
+            </p>
+            <p>Estado del Servidor: <%= status %>
+            </p>
+        </div>
+
+        <div class="keywords-section">
+            <div class="keywords-header" onclick="toggleKeywords()">
+                <h2>Filtrar por Palabras Clave</h2>
+                <button class="keywords-toggle" id="keywords-toggle">▼</button>
+            </div>
+            <div class="keywords-content" id="keywords-content">
+                <% keywords.forEach(keyword=> { %>
+                    <span class="keyword" onclick="toggleFilter(this)" data-keyword="<%= keyword.keyword %>">
+                        <%= keyword.keyword %>
+                    </span>
+                    <% }) %>
+            </div>
+        </div>
+
+        <div id="active-filters"></div>
+
+        <div class="books-grid">
+            <% books.forEach(book=> { %>
+                <div class="book-card" data-keywords="<%= book.keywords || '' %>">
+                    <% if (book.cover_image) { %>
+                        <img src="<%= book.cover_image %>" alt="<%= book.title %>" class="book-cover">
+                        <% } else { %>
+                            <div class="no-cover">Portada No Disponible</div>
+                            <% } %>
+                                <div class="book-info">
+                                    <h3>
+                                        <%= book.title %>
+                                    </h3>
+                                    <p class="author">por <%= book.author %>
+                                    </p>
+                                    <p class="subject">
+                                        <%= book.subject %>
+                                    </p>
+                                    <p class="downloads">Descargas: <%= book.downloads %>
+                                    </p>
+                                    <p class="date">Agregado: <%= new Date(book.date).toLocaleDateString() %>
+                                    </p>
+                                    <div class="keywords">
+                                        <% if (book.keywords) { %>
+                                            <% book.keywords.split(',').forEach(keyword=> { %>
+                                                <span class="keyword" onclick="toggleFilter(this)">
+                                                    <%= keyword.trim() %>
+                                                </span>
+                                                <% }) %>
+                                                    <% } %>
+                                    </div>
+                                    <button onclick="downloadBook('<%= book.book_id %>')" class="download-button">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Descargar
+                                    </button>
+                                    <div class="uploader-info">
+                                        <img src="<%= book.avatar %>" alt="<%= book.name %>" class="uploader-avatar">
+                                        <span class="uploader-name">Subido por <%= book.name %></span>
+                                    </div>
+                                </div>
+                </div>
+                <% }) %>
+        </div>
+    </div>
+
+    <script>
+        function toggleKeywords() {
+            const content = document.getElementById('keywords-content');
+            const toggle = document.getElementById('keywords-toggle');
+            content.classList.toggle('expanded');
+            toggle.style.transform = content.classList.contains('expanded') ? 'rotate(180deg)' : '';
+        }
+
+        const activeFilters = new Set();
+
+        function toggleFilter(element) {
+            const keyword = element.dataset.keyword || element.textContent.trim();
+            if (activeFilters.has(keyword)) {
+                activeFilters.delete(keyword);
+                element.classList.remove('active-filter');
+            } else {
+                activeFilters.add(keyword);
+                element.classList.add('active-filter');
+            }
+            updateFilters();
+            filterBooks();
+        }
+
+        function updateFilters() {
+            const filterContainer = document.getElementById('active-filters');
+            filterContainer.innerHTML = '';
+            activeFilters.forEach(filter => {
+                const filterTag = document.createElement('span');
+                filterTag.className = 'filter-tag';
+                filterTag.textContent = filter;
+                filterTag.onclick = () => removeFilter(filter);
+                filterContainer.appendChild(filterTag);
+            });
+        }
+
+        function removeFilter(filter) {
+            activeFilters.delete(filter);
+            document.querySelectorAll('.keyword').forEach(keyword => {
+                if (keyword.textContent.trim() === filter || keyword.dataset.keyword === filter) {
+                    keyword.classList.remove('active-filter');
+                }
+            });
+            updateFilters();
+            filterBooks();
+        }
+
+        function filterBooks() {
+            const books = document.querySelectorAll('.book-card');
+            books.forEach(book => {
+                const keywordsData = book.dataset.keywords || '';
+                const keywords = keywordsData ? keywordsData.split(',').map(k => k.trim()) : [];
+                const shouldShow = activeFilters.size === 0 || [...activeFilters].every(filter => keywords.includes(filter));
+                book.style.display = shouldShow ? 'block' : 'none';
+            });
+        }
+        async function downloadBook(bookId) {
+            try {
+                const response = await fetch(`/api/download/${bookId}`);
+                if (!response.ok) throw new Error('Falló la descarga');
+                const data = await response.text();
+                console.log(data);
+                // Create a temporary link to trigger the download
+                const link = document.createElement('a');
+                link.href = data; // Assuming the API returns {url: "download_url"}
+                link.target = '_blank';
+                link.download = ''; // This will use the server's filename
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error('Error al descargar el libro:', error);
+                alert('No se pudo descargar el libro. Por favor intente más tarde.');
+            }
+        }
+    </script>
+</body>
+
+</html>

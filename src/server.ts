@@ -2,6 +2,10 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import * as Sentry from "@sentry/node";
+import path from "path";
+import expressEjsLayouts from 'express-ejs-layouts';
+import { getBookCount, getAllBooksAndDetails, getKeywords } from "@services/books";
+import { getQueueStatus } from "@services/ampq";
 
 import db from "@db";
 import controllers from "@controllers";
@@ -22,6 +26,15 @@ const app = express();
 app.use(helmet());
 app.use(express.json());
 app.use(cors());
+
+// View engine setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.set('layout', 'layouts/main');
+app.use(expressEjsLayouts);
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 sentryInit(Sentry, app);
 // Trace incoming requests
@@ -49,6 +62,31 @@ connectQ().then(() => {
 workers(() => {
   initServices++;
   logger.info(`${servicesRunning()} Workers Initialized`);
+});
+
+// Add a route for the home page before your API routes
+app.get('/', async (req, res) => {
+  try {
+    const bookCount = await getBookCount();
+    const books = await getAllBooksAndDetails();
+    console.log(books);
+    const status = await getQueueStatus();
+    const keywords = await getKeywords();
+    console.log(keywords);
+    res.render('home', {
+      title: 'Discord PDF Bot',
+      bookCount: bookCount.completeBooks,
+      books,
+      status,
+      keywords
+    });
+  } catch (error) {
+    logger.error('Error rendering home page: ' + error.message);
+    res.status(500).render('error', {
+      title: 'Error',
+      message: 'An error occurred while loading the page'
+    });
+  }
 });
 
 //Global error handling - async controllers need try/catch and next(error) to access the following block

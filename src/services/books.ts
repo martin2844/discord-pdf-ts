@@ -763,6 +763,11 @@ const getBooksWithoutKeywords = async (): Promise<number[]> => {
   return bookIds;
 };
 
+const getKeywords = async () => {
+  const keywords = await db("keywords").select("*");
+  return keywords;
+};
+
 export {
   getAllBooks,
   getBookById,
@@ -787,4 +792,5 @@ export {
   updateBookDescription,
   updateKeywords,
   updateBookSubject,
+  getKeywords,
 };

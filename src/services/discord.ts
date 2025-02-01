@@ -122,7 +122,9 @@ const fetchDownloadLinkFromDiscord = async (
   messageId: string,
   fileName: string
 ): Promise<string | null> => {
+  console.log("Fetching download link from Discord");
   const client = await DiscordClient();
+  console.log("Client fetched");
 
   try {
     const channel = await client.channels.fetch(channelId);

@@ -1,0 +1,28 @@
+<footer class="site-footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h3>Discord PDF Bot</h3>
+            <p>Una plataforma de intercambio de PDF impulsada por la comunidad</p>
+        </div>
+        <div class="footer-section">
+            <h3>Enlaces Rápidos</h3>
+            <ul>
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/books">Explorar Libros</a></li>
+                <li><a href="/status">Estado del Sistema</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h3>Estadísticas</h3>
+            <ul>
+                <li>Total de Libros: <%= typeof bookCount !=='undefined' ? bookCount : '0' %>
+                </li>
+                <li>Estado del Servidor: <%= typeof status !=='undefined' ? status : 'Desconocido' %>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; <%= new Date().getFullYear() %> Discord PDF Bot. Todos los derechos reservados.</p>
+    </div>
+</footer>

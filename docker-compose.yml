@@ -12,6 +12,35 @@ services:
       RABBITMQ_DEFAULT_PASS: password
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: discord-pdf-bot
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - AMPQ_URL=amqp://user:password@rabbitmq:5672
+    volumes:
+      - app_data:/usr/src/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
 
 volumes:
   rabbitmq_data:
+  app_data:
+
+
+networks:
+  app-network:
+    driver: bridge

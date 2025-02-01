@@ -9,7 +9,10 @@ import {
   deleteBookById,
   deleteBooksWithoutDetails,
   deleteOrphanBookDetails,
+  getBookById,
 } from "@services/books";
+
+import { fetchDownloadLinkFromDiscord } from "@services/discord";
 
 router.get("/", async (req, res) => {
   const filters = req.query;
@@ -21,6 +24,17 @@ router.get("/:id", async (req, res) => {
   const { id } = req.params;
   const books = await getBookAndDetails(parseInt(id));
   res.json(books);
+});
+
+router.get("/:id/download", async (req, res) => {
+  const { id } = req.params;
+  const book = await getBookById(parseInt(id));
+  const URL = await fetchDownloadLinkFromDiscord(
+    process.env.BOOK_CHANNEL_ID,
+    book.message_id,
+    book.file
+  );
+  res.json(URL);
 });
 
 router.patch("/:bookId", Auth, async (req, res) => {
