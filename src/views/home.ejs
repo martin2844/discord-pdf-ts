@@ -472,7 +472,7 @@
             <% books.forEach(book=> { %>
                 <div class="book-card" data-keywords="<%= book.keywords || '' %>">
                     <% if (book.cover_image) { %>
-                        <img src="<%= book.cover_image %>" alt="<%= book.title %>" class="book-cover">
+                        <img src="<%= book.cover_image %>" alt="<%= book.title %>" class="book-cover" loading="lazy">
                         <% } else { %>
                             <div class="no-cover">Portada No Disponible</div>
                             <% } %>
