@@ -29,11 +29,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          // @ts-ignore
-          (req, res) => `'nonce-${res.locals.nonce}'`
-        ],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-hashes'"],
+        scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
@@ -45,6 +42,7 @@ app.use(
 app.use(express.json());
 app.use(cors());
 
+app.use(express.static(path.join(__dirname, 'public')));
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -52,7 +50,6 @@ app.set('layout', 'layouts/main');
 app.use(expressEjsLayouts);
 
 // Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
 
 sentryInit(Sentry, app);
 // Trace incoming requests
@@ -85,9 +82,6 @@ workers(() => {
 // Add a route for the home page before your API routes
 app.get('/', async (req, res) => {
   try {
-    const nonce = crypto.randomBytes(16).toString('hex');
-    res.locals.nonce = nonce; // Store nonce in res.locals for CSP
-
     const bookCount = await getBookCount();
     const books = await getAllBooksAndDetails();
     const status = await getQueueStatus();
@@ -98,8 +92,7 @@ app.get('/', async (req, res) => {
       bookCount: bookCount.completeBooks,
       books,
       status,
-      keywords,
-      nonce // Pass to template
+      keywords
     });
   } catch (error) {
     logger.error('Error rendering home page: ' + error.message);
