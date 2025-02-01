@@ -24,7 +24,24 @@ const servicesRunning = () => `[${initServices}/${totalServices}]`;
 const logger = Logger(module);
 
 const app = express();
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          // @ts-ignore
+          (req, res) => `'nonce-${res.locals.nonce}'`
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"]
+      }
+    }
+  })
+);
 app.use(express.json());
 app.use(cors());
 
@@ -68,18 +85,21 @@ workers(() => {
 // Add a route for the home page before your API routes
 app.get('/', async (req, res) => {
   try {
-    console.log("Rendering home page");
+    const nonce = crypto.randomBytes(16).toString('hex');
+    res.locals.nonce = nonce; // Store nonce in res.locals for CSP
+
     const bookCount = await getBookCount();
     const books = await getAllBooksAndDetails();
     const status = await getQueueStatus();
     const keywords = await getKeywords();
+
     res.render('home', {
       title: 'Discord PDF Bot',
       bookCount: bookCount.completeBooks,
       books,
       status,
       keywords,
-      nonce: crypto.randomBytes(16).toString('hex')
+      nonce // Pass to template
     });
   } catch (error) {
     logger.error('Error rendering home page: ' + error.message);
