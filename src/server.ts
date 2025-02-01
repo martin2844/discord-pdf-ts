@@ -67,12 +67,11 @@ workers(() => {
 // Add a route for the home page before your API routes
 app.get('/', async (req, res) => {
   try {
+    console.log("Rendering home page");
     const bookCount = await getBookCount();
     const books = await getAllBooksAndDetails();
-    console.log(books);
     const status = await getQueueStatus();
     const keywords = await getKeywords();
-    console.log(keywords);
     res.render('home', {
       title: 'Discord PDF Bot',
       bookCount: bookCount.completeBooks,

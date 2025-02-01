@@ -3,3 +3,5 @@ node_modules
 books.db
 logs
 dist
+src/services/tmp/*
+src/services/tmp
