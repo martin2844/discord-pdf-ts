@@ -486,6 +486,7 @@ const fetchBooks = async (): Promise<{
  */
 const addBooksFromMessage = async (booksMessages: BookMessage[]) => {
   if (!booksMessages || booksMessages.length === 0) {
+    console.log("No books to process");
     return "No books to process";
   }
 
@@ -497,10 +498,13 @@ const addBooksFromMessage = async (booksMessages: BookMessage[]) => {
     )
     .select("file");
 
+  console.log("Existing Books: " + existingBooks.length);
+
   // Filter out existing books
   const newBooks = booksMessages.filter(
     (book) => !existingBooks.find((existing) => existing.file === book.file)
   );
+  console.log("New Books: " + newBooks.length);
 
   if (newBooks.length === 0) {
     return "All books already exist";
@@ -514,12 +518,17 @@ const addBooksFromMessage = async (booksMessages: BookMessage[]) => {
     date: book.date,
   }));
 
+  console.log("Books: " + books.length);
   // Insert the new books
   if (books.length > 0) {
+    console.log("Inserting books");
     await db("books").insert(books);
+    console.log("Inserted books");
     // Fetch uploaders after saving books
+    console.log("Fetching uploaders");
     await fetchUploaders(mapBookMessagesToMessageAuthors(booksMessages));
     // After saving enqueue book details jobs
+    console.log("Enqueuing book details jobs");
     await enqueueBooksWithoutDetails();
     return `Enqueued jobs for ${books.length} books`;
   }
@@ -573,10 +582,13 @@ const sourceAndSaveBookDetails = async (bookId: number) => {
 const enqueueBooksWithoutDetails = async () => {
   try {
     const booksWithoutDetails = await getBooksWithoutDetails();
+    console.log("Books without details: " + booksWithoutDetails.length);
     const bookDetailsPromises = booksWithoutDetails.map((b) =>
       enqueueDetailsJob(b.id)
     );
+    console.log("Enqueuing book details jobs");
     await Promise.all(bookDetailsPromises);
+    console.log("Enqueued book details jobs");
     return "Enqueued jobs for books without details";
   } catch (error) {
     if (error instanceof PdfError) {
