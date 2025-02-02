@@ -180,6 +180,7 @@ DiscordClient().then((c) =>
       await message.reply("TODO");
     }
     //Ignore messages without attachment
+    console.log("Message Attachments: " + message.attachments.size);
     if (message.attachments.size === 0) return;
 
     let index = 0;

@@ -484,15 +484,47 @@ const fetchBooks = async (): Promise<{
  * @param {BookMessage} bookMessage - The book message containing the book to be added.
  * @returns {Promise<void>} - A promise that resolves once the book is added and book details are fetched.
  */
-const addBooksFromMessage = async (bookMessages: BookMessage[]) => {
-  //1. check if uploader exists
-  const uploaders = mapBookMessagesToMessageAuthors(bookMessages);
+const addBooksFromMessage = async (booksMessages: BookMessage[]) => {
+  if (!booksMessages || booksMessages.length === 0) {
+    return "No books to process";
+  }
 
-  await fetchUploaders(uploaders);
-  //2. save book
-  await saveBooks(await pruneBooks(mapBookMessagesToBooks(bookMessages)));
-  //4. fetch book details
-  return enqueueBooksWithoutDetails();
+  // First check if any of these books already exist
+  const existingBooks = await db("books")
+    .whereIn(
+      "file",
+      booksMessages.map((book) => book.file)
+    )
+    .select("file");
+
+  // Filter out existing books
+  const newBooks = booksMessages.filter(
+    (book) => !existingBooks.find((existing) => existing.file === book.file)
+  );
+
+  if (newBooks.length === 0) {
+    return "All books already exist";
+  }
+
+  // Map the books to the correct format
+  const books = newBooks.map((book) => ({
+    uploader_id: book.uploader_id,
+    file: book.file,
+    message_id: book.message_id,
+    date: book.date,
+  }));
+
+  // Insert the new books
+  if (books.length > 0) {
+    await db("books").insert(books);
+    // Fetch uploaders after saving books
+    await fetchUploaders(mapBookMessagesToMessageAuthors(booksMessages));
+    // After saving enqueue book details jobs
+    await enqueueBooksWithoutDetails();
+    return `Enqueued jobs for ${books.length} books`;
+  }
+
+  return "No new books to add";
 };
 
 /**
